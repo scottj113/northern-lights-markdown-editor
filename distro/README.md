@@ -223,7 +223,11 @@ italics), and one **Connect folder** relinks them all. A browser restriction, no
 - **Interactive tables** — every Markdown table has an **Interactive Mode**: click a
   header to sort, filter by column, hide columns, and export what you're looking at as
   CSV or JSON.
-- **Mermaid diagrams** — ` ```mermaid ` fences render as diagrams, offline.
+- **Mermaid diagrams** — ` ```mermaid ` fences render as diagrams, offline. Each sits in
+  its own viewer: hover for **− / fit / +** zoom, **◐− / ◐+** contrast, and **☼** to draw it
+  on a light background when it's hard to read on a dark page. Drag to pan, `Ctrl`+wheel
+  (or pinch) to zoom at the pointer, double-click to fit. Zooming redraws the vector, so
+  it stays sharp.
 - **Syntax highlighting** for JS/TS, Python, HTML/XML, CSS, JSON, Bash, SQL, YAML,
   TOML/INI, and diffs.
 - **Contents sidebar** with scroll-spy — drag its edge to make it wider or narrower
@@ -243,6 +247,11 @@ italics), and one **Connect folder** relinks them all. A browser restriction, no
 - **View Markdown source** — **</> Markdown** in the toolbar: the whole file as Markdown instead of the
   rendered page. Read-only; editing is off while it shows.
 - **Find and replace** — `Ctrl+F` / `Ctrl+H`, with match case, whole word and regex.
+- **Markdown fixer** — common mistakes (a heading with no space after `#`, a table
+  glued to the line above, a link broken by a space, a code block that never closes)
+  show as a **🩹** badge in the toolbar. Step through them with a before and after
+  for each, or **Fix all**. Nothing broken to hand? **⋮ → Try the Markdown fixer**
+  opens a page that's broken on purpose, fresh every time.
 - **Connect folder** — one pick relinks your tabs, enables saving and Watch, and loads
   relative images.
 - **Source path** — click the filename in the toolbar for a selectable field and a
@@ -315,11 +324,14 @@ everything else works.
 
 ## Updating Mermaid
 
-No package manager. Download the single dist file straight into `vendor/`, replacing
-what's there:
+Mermaid is embedded in `northern-lights.html`, so the one file is the whole app.
+`vendor/mermaid.min.js` is the copy it's embedded from. No package manager: download
+the single dist file straight into `vendor/`, replacing what's there, then re-embed it
+from the repo root:
 
 ```
 https://unpkg.com/mermaid@11/dist/mermaid.min.js
+node tools/embed-mermaid.mjs
 ```
 
 ## Layout
