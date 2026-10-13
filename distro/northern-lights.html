@@ -732,9 +732,13 @@ body.blank #dock { display: none; }
 #dock .dock-grip:hover { background-color: var(--accent-soft); }
 #dock.moving, #dock.moving .dock-grip { cursor: grabbing; opacity: 1; }
 /* Zen: only the page and the dock. */
-body.zen #bar, body.zen #tabs, body.zen #toc, body.zen #toc-handle,
+/* Zen comes in two steps: first the tabs stay (moved up to the top edge),
+   then .zen-full takes them too. */
+body.zen #bar, body.zen.zen-full #tabs, body.zen #toc, body.zen #toc-handle,
 body.zen #toc-open, body.zen #find-ticks { display: none !important; }
+body.zen #tabs { top: 0; }
 body.zen #shell { top: 0 !important; }
+body.zen.has-tabs:not(.zen-full) #shell { top: 30px !important; }
 
 /* Long lines wrap inside the page -- and so inside the bumper lanes -- instead
    of running past them. Continuations sit under the text, not the number. */
@@ -1494,7 +1498,7 @@ body.has-tabs #toast { top: 92px; }   /* clear of the tab row, same gap as witho
   <button type="button" id="dock-lanes-out" title="Narrower bumper lanes — wider text (,)" aria-label="Narrower bumper lanes"><svg viewBox="0 0 16 16" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 3v10M14 3v10M7 8H4M5.5 6.5 4 8l1.5 1.5M9 8h3M10.5 6.5 12 8l-1.5 1.5"/></svg></button>
   <i class="dock-sep"></i>
   <button type="button" id="dock-theme" title="Dark mode (D)">&#9790;</button>
-  <button type="button" id="dock-zen" title="Zen mode — hide the menus (Z)" aria-pressed="false" aria-label="Zen mode"><svg viewBox="0 0 16 16" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4"/></svg></button>
+  <button type="button" id="dock-zen" title="Zen mode — hide the menus, keep the tabs (Z)" aria-pressed="false" aria-label="Zen mode"><svg viewBox="0 0 16 16" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4"/></svg></button>
 </div>
 
 <div id="shell">
@@ -5375,7 +5379,7 @@ $("#dock").addEventListener("click", (e) => {
     setAppearance({ mode: isDark() ? "light" : "dark" });
     toast(isDark() ? "Dark mode" : "Light mode");
   }
-  else if (b.id === "dock-zen") setZen(!document.body.classList.contains("zen"));
+  else if (b.id === "dock-zen") cycleZen();
   updateDock();
 });
 
@@ -5432,14 +5436,26 @@ grip.addEventListener("dblclick", () => {
   toast("Dock back in its corner");
 });
 
-/** Zen mode: toolbar, tabs and sidebar gone; just the page and the dock.
- *  Not remembered -- a fresh load with no menus would look broken. */
-function setZen(on) {
-  document.body.classList.toggle("zen", on);
-  $("#dock-zen").setAttribute("aria-pressed", String(on));
-  $("#dock-zen").title = on ? "Leave zen mode (Z or Esc)" : "Zen mode — hide the menus (Z)";
+/** Zen mode, in steps: 0 normal; 1 toolbar and sidebar gone, tabs kept;
+ *  2 tabs gone too -- just the page and the dock. Not remembered -- a fresh
+ *  load with no menus would look broken. */
+function setZen(level) {
+  const b = document.body;
+  b.classList.toggle("zen", level > 0);
+  b.classList.toggle("zen-full", level === 2);
+  $("#dock-zen").setAttribute("aria-pressed", String(level > 0));
+  $("#dock-zen").title = ["Zen mode — hide the menus, keep the tabs (Z)",
+    "Full zen — hide the tabs too (Z)", "Leave zen mode (Z or Esc)"][level];
   closePops();
-  toast(on ? "Zen mode — Z or Esc to bring the menus back" : "Zen mode off");
+  toast(["Zen mode off", "Zen mode, tabs kept — Z again for full zen",
+    "Full zen — Z or Esc to bring the menus back"][level]);
+}
+/** Normal → tabs-only zen → full zen → normal. With no tab row the first
+ *  step would look the same as the second, so it is skipped. */
+function cycleZen() {
+  const b = document.body;
+  const level = b.classList.contains("zen-full") ? 2 : b.classList.contains("zen") ? 1 : 0;
+  setZen(level === 2 ? 0 : level === 0 && !b.classList.contains("has-tabs") ? 2 : level + 1);
 }
 
 /* ---------- popovers ---------- */
@@ -5813,9 +5829,9 @@ window.addEventListener("keydown", (e) => {
     toast(state.bold ? "Bold text on" : "Bold text off");
   } else if (e.key.toLowerCase() === "z" && state.text) {
     e.preventDefault();
-    setZen(!document.body.classList.contains("zen"));
+    cycleZen();
   } else if (e.key === "Escape" && document.body.classList.contains("zen")) {
-    setZen(false);
+    setZen(0);
   } else if (e.key === "," || e.key === ".") {
     // The < > keys: , narrows the lanes (wider text), . widens them.
     e.preventDefault();

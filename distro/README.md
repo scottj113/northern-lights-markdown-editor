@@ -274,8 +274,9 @@ italics), and one **Connect folder** relinks them all. A browser restriction, no
   A dimmed Watch means the document isn't linked to its file yet; click it to connect
   your projects folder (once per session), the same link autosave uses.
 - **Reading dock** — a small floating bar at the bottom right: text size, bumper
-  lanes, light / dark, and **zen mode**, which hides the toolbar, tabs and sidebar
-  so it's just you and the page. The dock stays, so one click brings it all back.
+  lanes, light / dark, and **zen mode**. Its first click hides the toolbar and
+  sidebar but keeps your tabs; the second hides the tabs too, so it's just you
+  and the page; the third brings it all back. The dock stays throughout.
 
 ## Keyboard
 
@@ -288,7 +289,7 @@ italics), and one **Connect folder** relinks them all. A browser restriction, no
 | `D` | Toggle light / dark mode |
 | `[` / `]` | Previous / next tab |
 | `,` / `.` | Narrower / wider bumper lanes |
-| `Z` | Zen mode: hide the menus (`Z` or `Esc` brings them back) |
+| `Z` | Zen mode: menus hidden, tabs kept → tabs hidden too → back to normal (`Esc` leaves at once) |
 | `Ctrl+O` | Open a file |
 | `Ctrl+R` | Re-read the file from disk |
 | `Ctrl+E` | Edit mode on / off |
