@@ -22,7 +22,7 @@ this file afterwards: `git checkout -- fixer-test-autofix.md`.)
 
 Fix this: the line below should be a heading, but it shows as plain text.
 
-#This should be a heading
+# This should be a heading
 
 *After: "This should be a heading" shows as a big heading.*
 
@@ -31,7 +31,7 @@ Fix this: the line below should be a heading, but it shows as plain text.
 Fix this: the middle item has no space after its dash, so it joins the line above.
 
 - first item
--second item
+- second item
 - third item
 
 *After: three separate bullets.*
@@ -39,6 +39,7 @@ Fix this: the middle item has no space after its dash, so it joins the line abov
 ## 3. Table with no blank line before it
 
 Fix this: the table is glued to this sentence, so it shows as a line of pipes.
+
 | Fruit | Colour |
 | --- | --- |
 | Apple | Red |
@@ -50,7 +51,7 @@ Fix this: the table is glued to this sentence, so it shows as a line of pipes.
 Fix this: the divider row has one column, but the header has three.
 
 | Name | Role | Team |
-|---|
+| --- | --- | --- |
 | Ada | Engineer | Core |
 
 *After: a real table with three columns.*
@@ -58,7 +59,7 @@ Fix this: the divider row has one column, but the header has three.
 ## 5. Space breaking a link
 
 Fix this: the space between `]` and `(` stops this being a link —
-see [the example site] (https://example.com) for details.
+see [the example site](https://example.com) for details.
 
 *After: "the example site" is a clickable link.*
 
@@ -85,3 +86,4 @@ code itself, because the block is last.)*
 ```js
 const answer = 42;
 console.log(answer);
+```
