@@ -215,6 +215,10 @@ italics), and one **Connect folder** relinks them all. A browser restriction, no
 
 - **GitHub-Flavored Markdown** — tables, task lists, strikethrough, autolinks, fenced
   code, plus footnotes, definition lists, and YAML front matter.
+- **GitHub alerts** — a quote that opens with `[!NOTE]`, `[!TIP]`, `[!IMPORTANT]`,
+  `[!WARNING]` or `[!CAUTION]` on its own line becomes a coloured box with an icon,
+  as on GitHub, instead of a grey quote with the marker showing as text. The colours
+  follow your palette, light or dark, and survive export.
 - **Raw HTML, the way GitHub renders it** — on by default and passed through a
   tag/attribute allow-list (scripts, event handlers and the like are stripped before
   anything reaches the page). HTML blocks, comments and entities follow the CommonMark
@@ -224,12 +228,15 @@ italics), and one **Connect folder** relinks them all. A browser restriction, no
   header to sort, filter by column, hide columns, and export what you're looking at as
   CSV or JSON.
 - **Mermaid diagrams** — ` ```mermaid ` fences render as diagrams, offline. Each sits in
-  its own viewer: hover for **− / fit / +** zoom, **◐− / ◐+** contrast, and **☼** to draw it
-  on a light background when it's hard to read on a dark page. Drag to pan, `Ctrl`+wheel
-  (or pinch) to zoom at the pointer, double-click to fit. Zooming redraws the vector, so
-  it stays sharp. Drag the frame's lower-right corner to make it taller, pushing the
-  text below it down, or wider, out into the right bumper lane but never past the
-  window's edge.
+  its own viewer: hover for **− / fit / +** zoom, **◐− / ◐+** contrast, **☼** to draw it
+  on a light background when it's hard to read on a dark page, and **↺** to put it all
+  back as it first appeared. Contrast works against the frame's background, whichever
+  it is: turned up, lines and text go toward black on a light frame (white on a dark
+  one) and the colours drain to grey; turned down, the diagram fades into the frame.
+  Drag to pan, `Ctrl`+wheel (or pinch) to zoom at the pointer, double-click to fit.
+  Zooming redraws the vector, so it stays sharp. Drag the frame's lower-right corner
+  to make it taller, pushing the text below it down, or wider, out into the right
+  bumper lane but never past the window's edge.
 - **Syntax highlighting** for JS/TS, Python, HTML/XML, CSS, JSON, Bash, SQL, YAML,
   TOML/INI, and diffs.
 - **Contents sidebar** with scroll-spy — drag its edge to make it wider or narrower

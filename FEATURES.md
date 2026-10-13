@@ -132,8 +132,19 @@ Complete feature inventory with status, timeline, and metadata.
 
 Potential future enhancements (not committed). All must stay single-file and offline — no server, even optional.
 
-### Recommended next
-- **GitHub-style callouts** — render `> [!NOTE]`, `[!TIP]`, `[!WARNING]`, `[!IMPORTANT]` as colored boxes instead of plain blockquotes. Small.
+### Recommended next — GitHub parity
+What GitHub renders in `.md` files that we don't yet, filtered to what's worth it. In order:
+
+1. ✓ **Alerts** (shipped 10/13) — `> [!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]`, `[!CAUTION]` as colored boxes with an icon, instead of plain blockquotes. Very common in READMEs.
+2. **Bare `www.` links** — `www.example.com` becomes a link with no `https://`, as on GitHub. One rule beside the existing autolinks. Tiny.
+3. **Theme-aware images** — `#gh-dark-mode-only` / `#gh-light-mode-only` on an image URL, and `<picture>` with a `prefers-color-scheme` source, show the right image for the palette's mode. Common in project READMEs. Small; check the raw-HTML sanitizer passes `<picture>`.
+4. **Math** — `$...$` inline, `$$...$$` blocks and ` ```math ` fences. ~300 KB vendored KaTeX, embedded like Mermaid and inert until a page has math — a small share now the file is ~3.9 MB. Medium.
+
+Considered and left out: emoji shortcodes (`:tada:`; a 30–50 KB name table for little gain), GeoJSON/TopoJSON maps and STL models (large, and GitHub's maps need online tiles), and issue/PR-only syntax (`@mentions`, `#123`, color chips, ` ```suggestion `), which GitHub doesn't render in files either.
+
+### Bookmarked
+- **Features list link in the app** — a link (⋮ menu, or the welcome screen) to this features list on GitHub, so readers can see what's new and what's coming. Bookmarked 10/13.
+- **Test: dropping several .md files at once** — Scott saw only one file come through, possibly an older build. Test on the current version first: today a multi-file drop is meant to load them all as a *document set* in the sidebar and open the first, with a "Loaded N documents" toast. If that works but feels like "only one", the change is to open each as its own tab; if it doesn't work, it's a bug. Bookmarked 10/13.
 
 ### Reading & navigation
 - Collapsible sections — click a heading to fold it; "collapse all to H2" for skimming.
@@ -149,7 +160,6 @@ Potential future enhancements (not committed). All must stay single-file and off
 
 ### Quality
 - Lint report — the things the fixer can't safely fix: broken internal links, skipped heading levels. Report only, shown on request.
-- Math rendering (`$...$`, `$$...$$`) — costs ~300 KB vendored KaTeX; opt-in or skip.
 
 ### Earlier ideas
 - Docx export (if good conversion path found)
@@ -159,6 +169,6 @@ Potential future enhancements (not committed). All must stay single-file and off
 
 ---
 
-**Last Updated:** 10/10/2026  
+**Last Updated:** 10/13/2026  
 **Maintainer:** Scott  
 **License:** See LICENSE file in distro/

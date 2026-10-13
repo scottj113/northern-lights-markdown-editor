@@ -1098,6 +1098,47 @@ body.has-tabs #toast { top: 92px; }   /* clear of the tab row, same gap as witho
 }
 .md blockquote > *:last-child { margin-bottom: 0; }
 
+/* GitHub alerts ("> [!NOTE]"). GitHub's own hues, the light or dark set
+   chosen by the palette's color-scheme -- which export carries over. The
+   icons (info, bulb, speech bubble, triangle, octagon, in the spirit of
+   GitHub's) are CSS masks painted in the alert's colour: markup would have to
+   get <svg> past the raw-HTML sanitizer, and this stylesheet travels with
+   export anyway. */
+.md .alert {
+  margin: 0 0 1.05em; padding: .55em 1.1em .65em;
+  border-left: 3px solid var(--alert); border-radius: 0 6px 6px 0;
+  background: color-mix(in srgb, var(--alert) 7%, transparent);
+}
+.md .alert > *:last-child { margin-bottom: 0; }
+.md .alert-title {
+  display: flex; align-items: center; gap: .5em; margin: 0 0 .35em;
+  color: var(--alert); font-weight: var(--doc-strong, 600); line-height: 1.4;
+}
+.md .alert-title::before {
+  content: ""; flex: none; width: 16px; height: 16px; background: currentColor;
+  -webkit-mask: var(--alert-icon) center / contain no-repeat; mask: var(--alert-icon) center / contain no-repeat;
+}
+.md .alert-note {
+  --alert: light-dark(#0969da, #4493f8);
+  --alert-icon: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round'><circle cx='8' cy='8' r='6.25'/><path d='M8 7.25v3.75M8 4.9v.01'/></svg>");
+}
+.md .alert-tip {
+  --alert: light-dark(#1a7f37, #3fb950);
+  --alert-icon: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><path d='M5.6 10.4A4.25 4.25 0 1 1 10.4 10.4c-.55.45-.8.95-.8 1.6v.5H6.4V12c0-.65-.25-1.15-.8-1.6z'/><path d='M6.6 14.75h2.8'/></svg>");
+}
+.md .alert-important {
+  --alert: light-dark(#8250df, #ab7df8);
+  --alert-icon: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><path d='M3.25 2.5h9.5a1 1 0 0 1 1 1v6.75a1 1 0 0 1-1 1H7.5l-3.25 2.5v-2.5h-1a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1z'/><path d='M8 4.9v2.9M8 9.6v.01'/></svg>");
+}
+.md .alert-warning {
+  --alert: light-dark(#9a6700, #d29922);
+  --alert-icon: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><path d='M8 1.9 1.4 13.6h13.2z'/><path d='M8 6.4v3.3M8 11.8v.01'/></svg>");
+}
+.md .alert-caution {
+  --alert: light-dark(#d1242f, #f85149);
+  --alert-icon: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><path d='M5.4 1.5h5.2l3.9 3.9v5.2l-3.9 3.9H5.4l-3.9-3.9V5.4z'/><path d='M8 4.9v3.6M8 10.9v.01'/></svg>");
+}
+
 .md code {
   font: .875em/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
   background: var(--code-bg); border: 1px solid var(--border);
@@ -1319,7 +1360,7 @@ body.has-tabs #toast { top: 92px; }   /* clear of the tab row, same gap as witho
   .md .mmd-frame svg { max-width: 100% !important; height: auto !important; }
   .md pre, .md code { background: #f6f7f9; border-color: #ccc; }
   .md .code-copy, .md .code-lang, .md .anchor { display: none !important; }
-  .md pre, .md blockquote, .md table, .md .mermaid-block { break-inside: avoid; }
+  .md pre, .md blockquote, .md .alert, .md table, .md .mermaid-block { break-inside: avoid; }
   .md h1, .md h2, .md h3 { break-after: avoid; }
   .md a { color: #000; text-decoration: underline; }
   .md img { filter: none; }
@@ -2014,6 +2055,16 @@ function blocks(lines, ctx, opts) {
       while (i < lines.length && (/^ {0,3}>/.test(lines[i]) || (!isBlank(i) && buf.length && !BLOCK_START.test(lines[i])))) {
         buf.push(lines[i].replace(/^ {0,3}>[ \t]?/, ""));
         i++;
+      }
+      // GitHub alert: "> [!NOTE]" alone on the quote's first line. Top level
+      // only (line0 is set nowhere else), as on GitHub: inside a list or
+      // another quote it stays a plain quote.
+      const alert = line0 !== null && buf[0].match(/^[ \t]*\[!(note|tip|important|warning|caution)\][ \t]*$/i);
+      if (alert) {
+        const kind = alert[1].toLowerCase();
+        out += mark('<div class="alert alert-' + kind + '"><p class="alert-title">' +
+          kind[0].toUpperCase() + kind.slice(1) + "</p>" + blocks(buf.slice(1), ctx) + "</div>", from);
+        continue;
       }
       out += mark("<blockquote>" + blocks(buf, ctx) + "</blockquote>", from);
       continue;
@@ -2931,7 +2982,8 @@ function lightThemed(code) {
 
 /* Diagram viewer: each rendered diagram sits in a frame with its own small
    toolbar (shown on hover) -- zoom out / fit / zoom in, less / more contrast,
-   and a light background for diagrams hard to read on a dark page. Drag pans;
+   a light background for diagrams hard to read on a dark page, and a reset
+   (↺) back to how it first appeared. Drag pans;
    Ctrl+wheel (or a trackpad pinch) zooms at the pointer; double-click fits.
    Zoom resizes the SVG itself rather than scaling it, so it stays sharp.
    The frame's lower-right corner drags it taller, and wider -- out of the
@@ -2939,7 +2991,24 @@ function lightThemed(code) {
    page never scrolls sideways.
    Nothing here is remembered: a re-render starts fitted again (only the
    light-background toggle, which redraws one diagram, keeps a dragged size). */
-const MMD_ZOOM = [0.25, 8], MMD_CONTRAST = [0.4, 2];
+const MMD_ZOOM = [0.25, 8], MMD_CONTRAST = [0.2, 3];
+
+/** The contrast filter for a diagram, measured against its frame's background
+ *  rather than mid-grey (CSS contrast()), which on a light background barely
+ *  moves pale fills and makes mid-tone lines *lighter*. Here everything that
+ *  isn't background is pushed away from it -- toward black on a light frame,
+ *  white on a dark one -- or, below 100%, faded into it. Turning it up also
+ *  drains the colour: whoever is reaching for contrast wants legibility, not
+ *  the palette. At 100% the diagram is exactly as drawn. */
+function mmdInk(frame, c) {
+  if (c === 1) return "";
+  const n = (getComputedStyle(frame).backgroundColor.match(/[\d.]+/g) || []).map(Number);
+  const rgb = n.slice(0, 3).every((v) => v <= 1) && n.length >= 3 ? n.map((v) => v * 255) : n;
+  const light = rgb.length < 3 || 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2] > 128;
+  const grey = c > 1 ? "grayscale(" + Math.min(1, (c - 1) / 0.8).toFixed(2) + ") " : "";
+  // brightness() scales away from black; inverted either side, away from white.
+  return grey + (light ? "invert(1) brightness(" + c + ") invert(1)" : "brightness(" + c + ")");
+}
 
 /** The widest a diagram frame may be dragged: to the scroller's right edge,
  *  less the page's own gutter -- and never narrower than its text column. */
@@ -2974,7 +3043,8 @@ function frameDiagram(el) {
     '<button type="button" data-c="-1">&#9680;&minus;</button>' +
     '<button type="button" data-c="1">&#9680;+</button><i class="sep"></i>' +
     '<button type="button" data-l title="Light background — for diagrams hard to read on a dark page" aria-pressed="' +
-    !!el.dataset.light + '">&#9788;</button></div></div>';
+    !!el.dataset.light + '">&#9788;</button><i class="sep"></i>' +
+    '<button type="button" data-r title="Reset view — fit, normal contrast, own background, original size">&#8634;</button></div></div>';
   const frame = el.querySelector(".mmd-frame");
   const tools = el.querySelector(".mmd-tools");
   el.querySelector(".mmd-stage").appendChild(svg);
@@ -3018,7 +3088,7 @@ function frameDiagram(el) {
   const contrast = (c) => {
     c = Math.round(Math.min(MMD_CONTRAST[1], Math.max(MMD_CONTRAST[0], c)) * 10) / 10;
     el.dataset.contrast = c;
-    svg.style.filter = c === 1 ? "" : "contrast(" + c + ")";
+    svg.style.filter = mmdInk(frame, c);
     const now = " (now " + Math.round(c * 100) + "%)";
     tools.querySelector('[data-c="-1"]').title = "Less contrast" + now;
     tools.querySelector('[data-c="1"]').title = "More contrast" + now;
@@ -3033,6 +3103,13 @@ function frameDiagram(el) {
     else if (b.dataset.c) contrast(Number(el.dataset.contrast) + 0.2 * Number(b.dataset.c));
     else if ("l" in b.dataset) {
       if (el.dataset.light) delete el.dataset.light; else el.dataset.light = "1";
+      drawDiagram(el);
+    } else if ("r" in b.dataset) {
+      // Back to exactly how it first appeared: redrawn in the page's theme,
+      // fitted. The frame is put back to its fitted size first, or the redraw
+      // would carry a dragged size over (see drawDiagram).
+      for (const k of ["light", "contrast", "h", "fw"]) delete el.dataset[k];
+      Object.assign(frame.style, { width: "", maxWidth: "", height: frame.dataset.fit });
       drawDiagram(el);
     }
   });
@@ -5483,7 +5560,9 @@ function exportHtml() {
     "tok-tag", "tok-atr", "tok-pun",
     // Reading preferences, so the exported file looks like what was on screen.
     "doc-size", "doc-zoom", "doc-weight", "doc-strong", "head-case", "head-track", "visual-filter"];
-  const frozen = ":root{" + names.map((n) => "--" + n + ":" + vars.getPropertyValue("--" + n).trim() + ";").join("") + "}";
+  // color-scheme too: alert colours pick their light or dark hue from it.
+  const frozen = ":root{color-scheme:" + vars.colorScheme + ";" +
+    names.map((n) => "--" + n + ":" + vars.getPropertyValue("--" + n).trim() + ";").join("") + "}";
 
   const title = (state.name || "Markdown document").replace(/\.[^.]+$/, "");
   commitInline();
