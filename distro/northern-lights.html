@@ -4701,6 +4701,9 @@ const fixer = {
 };
 state.fixHurry = localStorage.getItem("mdv:fixHurry") === "1";
 
+const PLAYGROUND = "Fixer playground.md";   // see openFixerSample()
+const onPlayground = () => !state.path && state.name === PLAYGROUND;
+
 const fixSig = (i) => i.kind + "|" + i.before.join("\n");
 
 /** Strip `code spans` to same-length filler, so rules can't match inside them. */
@@ -4795,7 +4798,11 @@ function applyFixTo(text, issue) {
 /** Re-check after every render; keeps the badge honest, runs hurry mode. */
 function refreshFixer() {
   const key = (state.tabs[state.tabIndex] || {}).key || null;
-  if (key !== fixer.key) { fixer.key = key; fixer.skipped.clear(); fixer.idx = 0; fixer.note = ""; }
+  if (key !== fixer.key) {
+    fixer.key = key; fixer.skipped.clear(); fixer.idx = 0; fixer.note = "";
+    // The playground always starts with Hurry mode off; anywhere else, the saved choice.
+    state.fixHurry = !onPlayground() && localStorage.getItem("mdv:fixHurry") === "1";
+  }
   const all = state.text && !state.sourceView ? lintMarkdown(state.text) : [];
   fixer.issues = state.fixHurry ? all : all.filter((i) => !fixer.skipped.has(fixSig(i)));
   if (state.fixHurry && all.length && state.text !== fixer.paused && !fixer.pending) {
@@ -5490,13 +5497,19 @@ $("#mi-clear-cache").addEventListener("click", clearCache);
 /** The fixer playground: a page broken on purpose (#fixer-sample, at the end
  *  of the file), so the fixer can be seen without a broken file to hand. It
  *  belongs to no file, and opening it again resets it: same tab, fresh text.
- *  Unlike paste, it leaves a document set in the sidebar where it is. */
+ *  Unlike paste, it leaves a document set in the sidebar where it is.
+ *  It always starts with Hurry mode off, whatever was last chosen: the point
+ *  is to watch the fixer work, and Hurry mode would fix it all before the
+ *  panel opened. Only here -- the saved choice is left alone, and comes back
+ *  on leaving (see refreshFixer). Ticking it here works as usual. */
 function openFixerSample(e) {
   e.stopPropagation();   // the document click would close the panel opened below
   commitInline();
   releaseAssets();
+  state.fixHurry = false;
+  fixer.paused = null;
   state.libraryIndex = -1;
-  Object.assign(state, { name: "Fixer playground.md", path: "", dir: "", dirty: false, handle: null,
+  Object.assign(state, { name: PLAYGROUND, path: "", dir: "", dirty: false, handle: null,
     text: $("#fixer-sample").textContent.replace(/^\n/, "") });
   stopWatching();
   updateSync();
@@ -5504,8 +5517,7 @@ function openFixerSample(e) {
   renderLibrary();
   persist();
   closePops();
-  // Open the fixes panel straight away -- unless Hurry mode already fixed it all.
-  if (!$("#btn-fix").hidden) $("#btn-fix").click();
+  $("#btn-fix").click();   // open the fixes panel straight away
 }
 $("#mi-try-fixer").addEventListener("click", openFixerSample);
 $("#btn-try-fixer").addEventListener("click", openFixerSample);
@@ -7203,7 +7215,8 @@ it found here.
   after for each. **Fix** or **Skip**.
 - **All at once**: **Fix all** repairs everything in one go.
 - **Hurry mode** (in the same panel) fixes every document as you open it, from
-  then on. It stays on until you untick it.
+  then on. It stays on until you untick it, except here: this page always
+  opens with it off.
 
 Each section below shows a mistake and what it should look like once fixed.
 Nothing here is saved anywhere: open **Try the Markdown fixer** from the ⋮ menu

@@ -250,8 +250,10 @@ italics), and one **Connect folder** relinks them all. A browser restriction, no
 - **Markdown fixer** — common mistakes (a heading with no space after `#`, a table
   glued to the line above, a link broken by a space, a code block that never closes)
   show as a **🩹** badge in the toolbar. Step through them with a before and after
-  for each, or **Fix all**. Nothing broken to hand? **⋮ → Try the Markdown fixer**
-  opens a page that's broken on purpose, fresh every time.
+  for each, or **Fix all**. **Hurry mode** fixes every document as you open it, until
+  you untick it. Nothing broken to hand? **⋮ → Try the Markdown fixer**
+  opens a page that's broken on purpose, fresh every time, with Hurry mode off so
+  you can watch each fix.
 - **Connect folder** — one pick relinks your tabs, enables saving and Watch, and loads
   relative images.
 - **Source path** — click the filename in the toolbar for a selectable field and a
