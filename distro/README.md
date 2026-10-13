@@ -176,9 +176,9 @@ edits you make in the viewer then save straight to the file, and **Watch** follo
 every save you make in VS Code. (Folder access lasts until the page is closed or
 refreshed.)
 
-> **Keep `vendor/` next to the HTML file.** Mermaid is loaded by relative path, so
-> moving the HTML out of this folder on its own breaks diagram rendering. Everything
-> else still works.
+> **The HTML file is all you need.** Mermaid is embedded in it, so copy, email or
+> move `northern-lights.html` on its own and diagrams still render. `vendor/` is only
+> the source it's embedded from.
 
 ### How a document gets in
 
@@ -227,7 +227,9 @@ italics), and one **Connect folder** relinks them all. A browser restriction, no
   its own viewer: hover for **− / fit / +** zoom, **◐− / ◐+** contrast, and **☼** to draw it
   on a light background when it's hard to read on a dark page. Drag to pan, `Ctrl`+wheel
   (or pinch) to zoom at the pointer, double-click to fit. Zooming redraws the vector, so
-  it stays sharp.
+  it stays sharp. Drag the frame's lower-right corner to make it taller, pushing the
+  text below it down, or wider, out into the right bumper lane but never past the
+  window's edge.
 - **Syntax highlighting** for JS/TS, Python, HTML/XML, CSS, JSON, Bash, SQL, YAML,
   TOML/INI, and diffs.
 - **Contents sidebar** with scroll-spy — drag its edge to make it wider or narrower

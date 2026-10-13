@@ -747,9 +747,12 @@ body.zen.has-tabs:not(.zen-full) #shell { top: 30px !important; }
 
 /* ---------- diagram viewer (see frameDiagram) ---------- */
 .md .mmd-view { position: relative; }
+/* resize: the lower-right corner drags the frame taller and wider (out into
+   the right bumper lane, never past the window -- see mmdRoom). */
 .md .mmd-frame {
   overflow: auto; border: 1px solid var(--border); border-radius: 8px;
   background: var(--bg); cursor: grab; scrollbar-width: thin;
+  resize: both; min-height: 60px; min-width: 120px;
 }
 .md .mmd-frame.light { background: #fff; }
 .md .mmd-frame.panning { cursor: grabbing; user-select: none; }
@@ -1310,7 +1313,9 @@ body.has-tabs #toast { top: 92px; }   /* clear of the tab row, same gap as witho
   .md strong, .md b { font-weight: 700; }
   .md .mermaid-block { zoom: 1; }
   .md .mmd-tools { display: none !important; }
-  .md .mmd-frame { height: auto !important; overflow: visible; border: 0; }
+  .md .mmd-view { width: auto !important; }
+  .md .mmd-frame { height: auto !important; width: auto !important; max-width: none !important;
+    overflow: visible; border: 0; resize: none; }
   .md .mmd-frame svg { max-width: 100% !important; height: auto !important; }
   .md pre, .md code { background: #f6f7f9; border-color: #ccc; }
   .md .code-copy, .md .code-lang, .md .anchor { display: none !important; }
@@ -2897,6 +2902,12 @@ let mmdSeq = 0;
 function drawDiagram(el) {
   const code = state.mermaidSources[Number(el.dataset.mermaid)] || "";
   const id = "mmd-" + Date.now().toString(36) + "-" + mmdSeq++;
+  // A size dragged by hand survives a redraw (the light-background toggle).
+  const old = el.querySelector(".mmd-frame");
+  if (old) {
+    if (old.style.height !== old.dataset.fit) el.dataset.h = old.style.height;
+    if (old.style.width) el.dataset.fw = old.style.width;
+  }
   Promise.resolve()
     .then(() => window.mermaid.render(id, el.dataset.light ? lightThemed(code) : code))
     .then(({ svg }) => { el.innerHTML = svg; frameDiagram(el); })
@@ -2923,8 +2934,31 @@ function lightThemed(code) {
    and a light background for diagrams hard to read on a dark page. Drag pans;
    Ctrl+wheel (or a trackpad pinch) zooms at the pointer; double-click fits.
    Zoom resizes the SVG itself rather than scaling it, so it stays sharp.
-   Nothing here is remembered: a re-render starts fitted again. */
+   The frame's lower-right corner drags it taller, and wider -- out of the
+   text column into the right bumper lane, but never past the window, so the
+   page never scrolls sideways.
+   Nothing here is remembered: a re-render starts fitted again (only the
+   light-background toggle, which redraws one diagram, keeps a dragged size). */
 const MMD_ZOOM = [0.25, 8], MMD_CONTRAST = [0.4, 2];
+
+/** The widest a diagram frame may be dragged: to the scroller's right edge,
+ *  less the page's own gutter -- and never narrower than its text column. */
+function mmdRoom(frame) {
+  const sc = els.scroller, fr = frame.getBoundingClientRect();
+  const k = frame.offsetWidth / fr.width || 1;   // CSS zoom (text size) scales the frame
+  const right = sc.getBoundingClientRect().left + sc.clientWidth - 20;
+  const col = frame.closest(".mermaid-block").clientWidth;
+  // max-width counts the content box; the frame's 1px borders sit outside it
+  return Math.max(col, (right - fr.left) * k) - 2;
+}
+// A narrower window: pull any dragged-wide frame back inside it.
+window.addEventListener("resize", () => {
+  for (const f of document.querySelectorAll(".mmd-frame")) {
+    if (!f.style.width) continue;
+    f.style.maxWidth = mmdRoom(f) + "px";
+    if (parseFloat(f.style.width) > parseFloat(f.style.maxWidth)) f.style.width = f.style.maxWidth;
+  }
+});
 function frameDiagram(el) {
   const svg = el.querySelector("svg");
   const vb = svg && svg.viewBox && svg.viewBox.baseVal;
@@ -2949,9 +2983,24 @@ function frameDiagram(el) {
   svg.removeAttribute("width");
   svg.style.maxWidth = "none";
 
-  const fit = Math.min(1, (frame.clientWidth - PAD) / w);
-  frame.style.height = h * fit + PAD + "px";   // fitted, it needs no scrolling
+  const view = el.querySelector(".mmd-view");
+  if (el.dataset.fw) {
+    frame.style.maxWidth = mmdRoom(frame) + "px";
+    frame.style.width = el.dataset.fw;
+  }
+  // Fit to the frame's width as it is now -- dragging it wider changes that.
+  const fitNow = () => Math.min(1, (frame.clientWidth - PAD) / w);
+  const fit = fitNow();
+  frame.dataset.fit = h * fit + PAD + "px";   // fitted, it needs no scrolling
+  frame.style.height = el.dataset.h || frame.dataset.fit;
   let s = fit;
+  // The toolbar is placed against the view, so the view follows a dragged
+  // width. Dragging only taller still fixes the width in px; one that matches
+  // the column is let go again, so the frame keeps following the window.
+  new ResizeObserver(() => {
+    if (frame.style.width && Math.abs(frame.offsetWidth - el.clientWidth) <= 1) frame.style.width = "";
+    view.style.width = frame.style.width ? frame.offsetWidth + "px" : "";
+  }).observe(frame);
   const zoom = (next, cx, cy) => {
     next = Math.min(MMD_ZOOM[1], Math.max(MMD_ZOOM[0], next));
     if (cx == null) { cx = frame.clientWidth / 2; cy = frame.clientHeight / 2; }
@@ -2980,7 +3029,7 @@ function frameDiagram(el) {
     e.stopPropagation();   // not a click on the block, as far as edit mode goes
     const b = e.target.closest("button");
     if (!b) return;
-    if (b.dataset.z) zoom(b.dataset.z === "fit" ? fit : s * (b.dataset.z === "in" ? 1.25 : 0.8));
+    if (b.dataset.z) zoom(b.dataset.z === "fit" ? fitNow() : s * (b.dataset.z === "in" ? 1.25 : 0.8));
     else if (b.dataset.c) contrast(Number(el.dataset.contrast) + 0.2 * Number(b.dataset.c));
     else if ("l" in b.dataset) {
       if (el.dataset.light) delete el.dataset.light; else el.dataset.light = "1";
@@ -2996,10 +3045,16 @@ function frameDiagram(el) {
     const r = frame.getBoundingClientRect();
     zoom(s * (e.deltaY < 0 ? 1.15 : 1 / 1.15), (e.clientX - r.left) * k(), (e.clientY - r.top) * k());
   }, { passive: false });
-  frame.addEventListener("dblclick", (e) => { e.preventDefault(); zoom(fit); });
+  frame.addEventListener("dblclick", (e) => { e.preventDefault(); zoom(fitNow()); });
   let pan = null;
   frame.addEventListener("pointerdown", (e) => {
     if (e.button !== 0) return;
+    // The resize grip in the lower-right corner drags the frame, not the diagram.
+    const r = frame.getBoundingClientRect(), grip = 18 / k();
+    if (e.clientX > r.right - grip && e.clientY > r.bottom - grip) {
+      frame.style.maxWidth = mmdRoom(frame) + "px";   // as wide as the window allows, no further
+      return;
+    }
     pan = { id: e.pointerId, x: e.clientX, y: e.clientY, sl: frame.scrollLeft, st: frame.scrollTop, moved: false };
   });
   frame.addEventListener("pointermove", (e) => {
@@ -5274,8 +5329,11 @@ for (const [id, key] of [["find-case", "matchCase"], ["find-word", "wholeWord"],
     $("#find-input").focus();
   });
 }
-// The ticks are laid out against the scroller; follow it when it resizes.
-new ResizeObserver(() => { if (find.open) paintFind(); }).observe(els.scroller);
+// The ticks are laid out against the scroller and the page's height; follow
+// either when it changes (a diagram dragged taller pushes every match down).
+const findRO = new ResizeObserver(() => { if (find.open) paintFind(); });
+findRO.observe(els.scroller);
+findRO.observe(els.doc);
 window.addEventListener("resize", () => { if (find.open) paintFind(); });
 
 /* ---------- saving in-place edits ---------- */
