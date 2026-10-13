@@ -495,8 +495,38 @@ body.has-tabs #shell { top: 76px; }
 }
 #tabs .tab:hover .tab-x, #tabs .tab.active .tab-x, #tabs .tab-x:focus-visible { opacity: 1; }
 #tabs .tab-x:hover { color: var(--fg); background: var(--border); }
-#tabs .tab.dragging { background: var(--accent-soft); color: var(--fg); opacity: .85; }
+/* Each tab's own color: a dot (navy by default; double-click it for the
+   picker), and once changed, a tint and underline in that color. */
+#tabs .tab { --tc: #24407a; box-shadow: inset 0 3px var(--tc); }
+#tabs .tab.active { box-shadow: inset 0 3px var(--tc), inset 0 -2px var(--accent); }
+#tabs .tab-dot {
+  flex: none; width: 9px; height: 9px; margin-right: 4px; border-radius: 50%;
+  background: var(--tc); box-shadow: 0 0 0 1px var(--border-strong); cursor: pointer;
+}
+#tabs .tab-dot:hover { box-shadow: 0 0 0 2px var(--accent-soft), 0 0 0 3px var(--tc); }
+#tabs .tab.colored { background: color-mix(in srgb, var(--tc) 13%, transparent); }
+#tabs .tab.colored:hover { background: color-mix(in srgb, var(--tc) 22%, transparent); }
+#tabs .tab.colored.active { box-shadow: inset 0 3px var(--tc), inset 0 -2px var(--tc); }
+/* The dragged tab rides along under the pointer, see-through, above its
+   neighbours; the gap it leaves is where it will land. */
+#tabs .tab.dragging {
+  position: relative; z-index: 2; opacity: .6; color: var(--fg);
+  background: color-mix(in srgb, var(--tc) 16%, var(--bg-raised));
+  box-shadow: 0 0 0 1px var(--border-strong), var(--shadow);
+}
 body.tab-dragging, body.tab-dragging #tabs .tab { cursor: grabbing; }
+#tab-colors {
+  position: fixed; z-index: 60; display: grid; grid-template-columns: repeat(5, 22px); gap: 6px;
+  padding: 8px; background: var(--bg-raised); border: 1px solid var(--border-strong);
+  border-radius: 8px; box-shadow: var(--shadow);
+}
+#tab-colors[hidden] { display: none; }
+#tab-colors button {
+  appearance: none; width: 22px; height: 22px; padding: 0; border: 0; border-radius: 50%;
+  cursor: pointer; box-shadow: 0 0 0 1px var(--border-strong);
+}
+#tab-colors button:hover, #tab-colors button:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--bg-raised), 0 0 0 4px var(--fg-muted); }
+#tab-colors button[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--bg-raised), 0 0 0 4px var(--accent); }
 
 /* ---------- edit in place ---------- */
 /* A ring drawn with box-shadow, not a border, so hovering never shifts layout. */
@@ -1429,6 +1459,8 @@ body.has-tabs #toast { top: 92px; }   /* clear of the tab row, same gap as witho
 </div>
 
 <div id="tabs" role="tablist" aria-label="Open documents"></div>
+<!-- One tab's color picker, opened by double-clicking its dot. -->
+<div id="tab-colors" role="dialog" aria-label="Tab color" hidden></div>
 
 <div id="find-bar" role="search" hidden>
   <button type="button" id="find-toggle" aria-expanded="false" title="Replace (Ctrl+H)" aria-label="Toggle replace">&#8250;</button>
@@ -3164,6 +3196,10 @@ function closeTab(n) {
   persist();
 }
 
+// Tab colors on offer; the first, navy, is every tab's default.
+const TAB_COLORS = ["#24407a", "#2d6de9", "#138a8a", "#2e9e5b", "#7a8291",
+                    "#d49a12", "#e0702b", "#d9534f", "#d6458f", "#7b4fd0"];
+
 function renderTabs() {
   const n = state.tabs.length;
   // One document is not a set -- same rule as the document list.
@@ -3175,8 +3211,11 @@ function renderTabs() {
     const tip = where + (t.restored
       ? "\nSaved copy from an earlier session — connect its folder (📁) or open the file again for live reload" : "");
     const on = i === state.tabIndex;
+    const color = TAB_COLORS.includes(t.color) && t.color !== TAB_COLORS[0] ? t.color : "";
     return '<div class="tab' + (on ? " active" : "") + (t.restored ? " restored" : "") + (t.dirty ? " dirty" : "") +
-      '" data-i="' + i + '" role="tab" tabindex="0" aria-selected="' + on + '" title="' + esc(tip) + '">' +
+      (color ? " colored" : "") + '" data-i="' + i + '" role="tab" tabindex="0" aria-selected="' + on +
+      '" title="' + esc(tip) + '"' + (color ? ' style="--tc:' + color + '"' : "") + ">" +
+      '<span class="tab-dot" title="Double-click to change color"></span>' +
       '<span class="tab-name">' + esc(label) + "</span>" +
       '<button type="button" class="tab-x" data-x="' + i + '" title="Close (middle-click)" aria-label="Close ' +
       esc(label) + '">&times;</button></div>';
@@ -5105,7 +5144,7 @@ function persist() {
     localStorage.setItem("mdv:tabs", JSON.stringify({
       active: saved.indexOf(active),
       tabs: saved.map((t) => ({ name: t.name, path: t.path, dir: t.dir, text: t.text, scroll: t.scroll || 0,
-        dirty: !!t.dirty })),
+        dirty: !!t.dirty, color: t.color || "" })),
     }));
     localStorage.removeItem("mdv:last");   // the single-document format this replaced
   } catch (_) { /* quota; not worth surfacing */ }
@@ -5128,6 +5167,7 @@ function restoreTabs() {
     state.tabs = saved.tabs.filter((t) => t && typeof t.text === "string" && t.text).map((t, n) => {
       const tab = { name: t.name || "", path: t.path || "", dir: t.dir || "", text: t.text,
         handle: null, lastModified: 0, assets: null, scroll: Number(t.scroll) || 0, dirty: !!t.dirty,
+        color: TAB_COLORS.includes(t.color) ? t.color : "",
         used: n === saved.active ? now : now - 1000 - n, restored: true };
       tab.key = docKey(tab);
       return tab;
@@ -5408,6 +5448,7 @@ const POPS = [["#btn-display", "#pop-display"], ["#btn-more", "#pop-more"],
               ["#doc-name", "#pop-path"], ["#btn-fix", "#pop-fix"], ["#btn-folder", "#pop-folder"]];
 
 function closePops(except) {
+  closeTabColors();
   for (const [btn, pop] of POPS) {
     if (pop === except) continue;
     $(pop).hidden = true;
@@ -5482,11 +5523,78 @@ els.docsList.addEventListener("keydown", (e) => {
 });
 
 // --- tabs ---
+// Clicks on a tab's dot, counted while they keep coming fast: two open its
+// color picker; a third steps to the next color, and every quick click after
+// that steps again, looping round. The picker waits out the gap so a third
+// click doesn't flash it open first. Once cycling, the gap stretches to a full
+// second -- time to look at the new color before deciding on one more click.
+// Counted by hand, not dblclick: the first click can switch tabs and rebuild
+// the row, so later clicks land on a fresh dot.
+const DOT_GAP = 400, CYCLE_GAP = 1000;
+let dotClick = null;
 els.tabs.addEventListener("click", (e) => {
   const x = e.target.closest(".tab-x");
   if (x) { closeTab(Number(x.dataset.x)); return; }
   const t = e.target.closest(".tab");
-  if (t) activateTab(Number(t.dataset.i));
+  if (!t) return;
+  const i = Number(t.dataset.i);
+  const dot = e.target.closest(".tab-dot");
+  if (dot) {
+    const tab = state.tabs[i];
+    const d = dotClick && dotClick.tab === tab &&
+      Date.now() - dotClick.at < (dotClick.n > 2 ? CYCLE_GAP : DOT_GAP)
+      ? dotClick : (dotClick = { tab, n: 0 });
+    clearTimeout(d.timer);
+    d.n++;
+    d.at = Date.now();
+    if (d.n === 2) {
+      d.timer = setTimeout(() => {
+        const fresh = els.tabs.querySelector('.tab[data-i="' + state.tabs.indexOf(tab) + '"] .tab-dot');
+        if (fresh) openTabColors(tab, fresh);
+      }, DOT_GAP);
+      return;
+    }
+    if (d.n > 2) {
+      e.stopPropagation();
+      closeTabColors();
+      const next = (TAB_COLORS.indexOf(tab.color || TAB_COLORS[0]) + 1) % TAB_COLORS.length;
+      tab.color = next ? TAB_COLORS[next] : "";
+      renderTabs();
+      persist();
+      return;
+    }
+  }
+  activateTab(i);
+});
+
+const tabColors = $("#tab-colors");
+tabColors.innerHTML = TAB_COLORS.map((c, n) =>
+  '<button type="button" data-c="' + c + '" style="background:' + c + '" aria-label="' +
+  ["Navy (default)", "Blue", "Teal", "Green", "Grey", "Amber", "Orange", "Red", "Pink", "Purple"][n] +
+  '" title="' + (n ? "" : "Navy (default)") + '"></button>').join("");
+let tabColorFor = null;
+function openTabColors(tab, dot) {
+  closePops();
+  tabColorFor = tab;
+  const cur = tab.color || TAB_COLORS[0];
+  for (const b of tabColors.children) b.setAttribute("aria-pressed", String(b.dataset.c === cur));
+  tabColors.hidden = false;
+  const r = dot.getBoundingClientRect();
+  const w = tabColors.offsetWidth;
+  tabColors.style.left = Math.max(8, Math.min(r.left - 10, innerWidth - w - 8)) + "px";
+  tabColors.style.top = r.bottom + 10 + "px";
+  tabColors.querySelector('[aria-pressed="true"]').focus();
+}
+// Also reached from closePops(), which can run before tabColors is defined.
+function closeTabColors() { $("#tab-colors").hidden = true; }
+tabColors.addEventListener("click", (e) => {
+  e.stopPropagation();
+  const b = e.target.closest("button");
+  if (!b || !tabColorFor) return;
+  tabColorFor.color = b.dataset.c === TAB_COLORS[0] ? "" : b.dataset.c;
+  closeTabColors();
+  renderTabs();
+  persist();
 });
 els.tabs.addEventListener("keydown", (e) => {
   if (e.key !== "Enter" && e.key !== " ") return;
@@ -5503,7 +5611,8 @@ let tabDrag = null;
 els.tabs.addEventListener("pointerdown", (e) => {
   const t = e.target.closest(".tab");
   if (e.button !== 0 || !t || e.target.closest(".tab-x")) return;
-  tabDrag = { el: t, id: e.pointerId, x0: e.clientX, moving: false };
+  tabDrag = { el: t, id: e.pointerId, x0: e.clientX, grab: e.clientX - t.getBoundingClientRect().left,
+    tx: 0, moving: false };
 });
 els.tabs.addEventListener("pointermove", (e) => {
   const d = tabDrag;
@@ -5521,6 +5630,10 @@ els.tabs.addEventListener("pointermove", (e) => {
   if (next ? d.el.nextElementSibling !== next : d.el !== els.tabs.lastElementChild) {
     els.tabs.insertBefore(d.el, next || null);
   }
+  // Keep the tab under the pointer, measured from the slot it now sits in.
+  const slot = d.el.getBoundingClientRect().left - d.tx;
+  d.tx = e.clientX - d.grab - slot;
+  d.el.style.transform = "translateX(" + d.tx + "px)";
   // Nudge an overflowing row along when the pointer nears either end.
   const box = els.tabs.getBoundingClientRect();
   if (e.clientX < box.left + 24) els.tabs.scrollLeft -= 12;
@@ -5532,6 +5645,7 @@ function endTabDrag(e) {
   tabDrag = null;
   if (!d.moving) return;
   d.el.classList.remove("dragging");
+  d.el.style.transform = "";
   document.body.classList.remove("tab-dragging");
   // The click that follows a drag is not a request to switch tabs.
   const eat = (c) => c.stopImmediatePropagation();
