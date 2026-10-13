@@ -8,10 +8,10 @@
 <!--
   Versions: this file is the current viewer, unversioned. Earlier releases
   carried the version in the name -- northern-lights-v3.html (until 2026-10-10),
-  northern-lights-v2.html (also kept in version_history/), and before the
-  rename, md_to_html_viewer.html. To get one back, look for those names in git:
+  northern-lights-v2.html, and before the rename, md_to_html_viewer.html.
+  To get one back, look for those names in git:
     git log --follow --oneline -- distro/northern-lights.html
-    git show <commit>:northern-lights/distro/northern-lights-v3.html > old.html
+    git show <commit>:distro/northern-lights-v3.html > old.html
 -->
 
 <!--
@@ -671,6 +671,45 @@ body.source-view:not(.blank) #raw-view {
   border: 1px solid var(--border); border-radius: 8px;
   font: calc(var(--doc-size, 15.5px) * .86)/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
+/* ---------- reading dock + zen mode ---------- */
+#dock {
+  position: fixed; right: 18px; bottom: 18px; z-index: 40;
+  display: flex; align-items: center; gap: 2px; padding: 4px;
+  background: var(--bg-raised); border: 1px solid var(--border-strong);
+  border-radius: 10px; box-shadow: var(--shadow);
+  opacity: .9; transition: opacity .18s;
+}
+#dock:hover, #dock:focus-within, body.zen #dock:hover { opacity: 1; }
+/* Once moved, it's placed by left/top (set in script) instead of the corner. */
+#dock.placed { right: auto; bottom: auto; }
+body.blank #dock { display: none; }
+#dock button {
+  appearance: none; border: 0; background: none; color: var(--fg);
+  font: inherit; font-size: 14px; font-weight: 650; min-width: 34px; height: 32px;
+  padding: 0 6px; border-radius: 6px; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+#dock button:hover:not(:disabled) { color: var(--accent); background: var(--accent-soft); }
+#dock button:disabled { opacity: .35; cursor: default; }
+#dock button[aria-pressed="true"] { color: var(--accent); background: var(--accent-soft); }
+#dock .dock-sep { width: 1px; height: 18px; background: var(--border); margin: 0 3px; }
+/* Grab here to move the dock anywhere; double-click to send it home. */
+#dock .dock-grip {
+  width: 10px; height: 24px; margin: 0 2px 0 1px; border-radius: 3px; cursor: grab;
+  touch-action: none;
+  background: radial-gradient(circle, var(--fg-faint) 1.2px, transparent 1.6px) 0 0 / 5px 5px;
+}
+#dock .dock-grip:hover { background-color: var(--accent-soft); }
+#dock.moving, #dock.moving .dock-grip { cursor: grabbing; opacity: 1; }
+/* Zen: only the page and the dock. */
+body.zen #bar, body.zen #tabs, body.zen #toc, body.zen #toc-handle,
+body.zen #toc-open, body.zen #find-ticks { display: none !important; }
+body.zen #shell { top: 0 !important; }
+
+/* Long lines wrap inside the page -- and so inside the bumper lanes -- instead
+   of running past them. Continuations sit under the text, not the number. */
+#raw-view .sl { white-space: pre-wrap; }
+#raw-view .lt { overflow-wrap: anywhere; }
 body.source-view .toc-edit { display: none !important; }
 .src-lines .sl.h .lt { font-weight: 700; color: var(--accent); }
 
@@ -1193,7 +1232,7 @@ body.has-tabs #toast { top: 92px; }   /* clear of the tab row, same gap as witho
 @media print {
   :root { color-scheme: light; }
   body { overflow: visible; background: #fff; }
-  #bar, #tabs, #toc, #toc-handle, #toc-open, #drop, #toast, #empty, #sec-frame, #source-pane, #split-handle, #src-toggle,
+  #bar, #tabs, #toc, #toc-handle, #toc-open, #dock, #drop, #toast, #empty, #sec-frame, #source-pane, #split-handle, #src-toggle,
   #find-bar, #find-ticks { display: none !important; }
   #doc mark.find-hit, #raw-view mark.find-hit { background: none !important; outline: none !important; color: inherit !important; }
   #shell { position: static; display: block; }
@@ -1412,6 +1451,19 @@ body.has-tabs #toast { top: 92px; }   /* clear of the tab row, same gap as witho
   </div>
 </div>
 <div id="find-ticks" hidden></div>
+
+<!-- Reading dock: the controls you adjust mid-page. Stays in zen mode. -->
+<div id="dock" role="toolbar" aria-label="Reading controls">
+  <span class="dock-grip" title="Drag to move · double-click to put it back" aria-hidden="true"></span>
+  <button type="button" id="dock-smaller" title="Smaller text (−)">A&minus;</button>
+  <button type="button" id="dock-bigger" title="Larger text (+)">A+</button>
+  <i class="dock-sep"></i>
+  <button type="button" id="dock-lanes-in" title="Wider bumper lanes — narrower text (.)" aria-label="Wider bumper lanes"><svg viewBox="0 0 16 16" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 3v10M14 3v10M4 8h3M5.5 6.5 7 8 5.5 9.5M12 8H9M10.5 6.5 9 8l1.5 1.5"/></svg></button>
+  <button type="button" id="dock-lanes-out" title="Narrower bumper lanes — wider text (,)" aria-label="Narrower bumper lanes"><svg viewBox="0 0 16 16" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 3v10M14 3v10M7 8H4M5.5 6.5 4 8l1.5 1.5M9 8h3M10.5 6.5 12 8l-1.5 1.5"/></svg></button>
+  <i class="dock-sep"></i>
+  <button type="button" id="dock-theme" title="Dark mode (D)">&#9790;</button>
+  <button type="button" id="dock-zen" title="Zen mode — hide the menus (Z)" aria-pressed="false" aria-label="Zen mode"><svg viewBox="0 0 16 16" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4"/></svg></button>
+</div>
 
 <div id="shell">
   <nav id="toc">
@@ -2411,6 +2463,7 @@ function activeMode() {
 const BASE_FONT = 15.5;
 const MIN_FONT = 10;
 const MAX_FONT = 40;
+const BUMPER_MAX = 40;   // % each side; 50 would leave no text column
 
 /** Push the reading preferences onto the document. Cheap enough to call freely. */
 function applyDocStyle() {
@@ -2431,6 +2484,7 @@ function applyDocStyle() {
   $("#btn-font-reset").disabled = size === BASE_FONT;
   $("#chk-bold").checked = state.bold;
   $("#chk-caps").checked = state.caps;
+  updateDock();
   return pct;
 }
 
@@ -2493,6 +2547,7 @@ function applyTheme(rerenderDiagrams) {
   }
 
   try { localStorage.setItem("mdv:appearance", JSON.stringify(a)); } catch (e) { /* quota */ }
+  updateDock();
   if (rerenderDiagrams && mermaidReady) renderMermaid();
 }
 
@@ -5238,16 +5293,113 @@ $("#chk-raw").addEventListener("change", (e) => {
   toast(state.rawHtml ? "Raw HTML on (sanitized allow-list)" : "Raw HTML off — tags shown as text");
 });
 
+
+/** Set the bumper lanes (0-40% each side), from the menu, the dock or a key. */
+function setBumpers(v, quiet) {
+  state.bumpers = Math.min(BUMPER_MAX, Math.max(0, v));
+  localStorage.setItem("mdv:bumpers", state.bumpers);
+  for (const b of $("#seg-bumpers").querySelectorAll("button")) {
+    b.classList.toggle("active", Number(b.dataset.v) === state.bumpers);
+  }
+  $("#page").className = state.bumpers === 0 ? "" : `bumper-${state.bumpers}`;
+  updateDock();
+  if (!quiet) toast(state.bumpers ? `Bumper lanes: ${state.bumpers}%` : "Bumper lanes off");
+}
+const nudgeBumpers = (d) => setBumpers(state.bumpers + d * 10);
+
 for (const btn of $("#seg-bumpers").querySelectorAll("button")) {
-  btn.addEventListener("click", () => {
-    state.bumpers = Number(btn.dataset.v);
-    localStorage.setItem("mdv:bumpers", state.bumpers);
-    for (const b of $("#seg-bumpers").querySelectorAll("button")) {
-      b.classList.toggle("active", b === btn);
-    }
-    $("#page").className = state.bumpers === 0 ? "" : `bumper-${state.bumpers}`;
-    toast(`Bumper lanes: ${state.bumpers}%`);
-  });
+  btn.addEventListener("click", () => setBumpers(Number(btn.dataset.v)));
+}
+
+/* ------------------------------------------------------------------ dock --
+   The reading controls you reach for mid-page -- text size, bumper lanes,
+   light/dark -- floating at the bottom right, one click each. Quiet until
+   hovered, so it doesn't compete with the text. */
+function updateDock() {
+  const dark = isDark();
+  $("#dock-theme").innerHTML = dark ? "&#9788;" : "&#9790;";
+  $("#dock-theme").title = (dark ? "Light mode" : "Dark mode") + " (D)";
+  $("#dock-lanes-in").disabled = state.bumpers >= BUMPER_MAX;
+  $("#dock-lanes-out").disabled = state.bumpers <= 0;
+  $("#dock-smaller").disabled = state.fontSize <= MIN_FONT;
+  $("#dock-bigger").disabled = state.fontSize >= MAX_FONT;
+}
+$("#dock").addEventListener("click", (e) => {
+  const b = e.target.closest("button");
+  if (!b) return;
+  if (b.id === "dock-smaller") nudgeFont(-1);
+  else if (b.id === "dock-bigger") nudgeFont(1);
+  else if (b.id === "dock-lanes-in") nudgeBumpers(1);
+  else if (b.id === "dock-lanes-out") nudgeBumpers(-1);
+  else if (b.id === "dock-theme") {
+    setAppearance({ mode: isDark() ? "light" : "dark" });
+    toast(isDark() ? "Dark mode" : "Light mode");
+  }
+  else if (b.id === "dock-zen") setZen(!document.body.classList.contains("zen"));
+  updateDock();
+});
+
+/* Moving the dock. Its spot is saved as a fraction of the room it has to
+   move in (0-1 across, 0-1 down), so it stays put relative to the window and
+   can't end up off screen after a resize. No saved spot = bottom right. */
+const dock = $("#dock");
+let dockPos = null;
+try { dockPos = JSON.parse(localStorage.getItem("mdv:dockPos") || "null"); } catch (_) { /* default */ }
+
+function placeDock() {
+  if (!dockPos) { dock.style.left = dock.style.top = ""; return; }
+  const clamp = (v) => Math.min(1, Math.max(0, v));
+  dock.style.left = Math.round(clamp(dockPos.x) * Math.max(0, innerWidth - dock.offsetWidth)) + "px";
+  dock.style.top = Math.round(clamp(dockPos.y) * Math.max(0, innerHeight - dock.offsetHeight)) + "px";
+}
+window.addEventListener("resize", placeDock);
+// Hidden on the blank page, so its size is only known once it shows.
+new ResizeObserver(placeDock).observe(dock);
+dock.classList.toggle("placed", !!dockPos);
+
+const grip = dock.querySelector(".dock-grip");
+grip.addEventListener("pointerdown", (e) => {
+  if (e.button !== 0) return;
+  e.preventDefault();
+  const r = dock.getBoundingClientRect();
+  const dx = e.clientX - r.left, dy = e.clientY - r.top;
+  grip.setPointerCapture(e.pointerId);
+  dock.classList.add("moving", "placed");
+  const move = (m) => {
+    const x = Math.min(Math.max(0, m.clientX - dx), innerWidth - r.width);
+    const y = Math.min(Math.max(0, m.clientY - dy), innerHeight - r.height);
+    dock.style.left = x + "px";
+    dock.style.top = y + "px";
+  };
+  const up = () => {
+    grip.removeEventListener("pointermove", move);
+    grip.removeEventListener("pointerup", up);
+    grip.removeEventListener("pointercancel", up);
+    dock.classList.remove("moving");
+    const b = dock.getBoundingClientRect();
+    dockPos = { x: b.left / Math.max(1, innerWidth - b.width), y: b.top / Math.max(1, innerHeight - b.height) };
+    try { localStorage.setItem("mdv:dockPos", JSON.stringify(dockPos)); } catch (_) { /* quota */ }
+  };
+  grip.addEventListener("pointermove", move);
+  grip.addEventListener("pointerup", up);
+  grip.addEventListener("pointercancel", up);
+});
+grip.addEventListener("dblclick", () => {
+  dockPos = null;
+  try { localStorage.removeItem("mdv:dockPos"); } catch (_) { /* fine */ }
+  dock.classList.remove("placed");
+  placeDock();
+  toast("Dock back in its corner");
+});
+
+/** Zen mode: toolbar, tabs and sidebar gone; just the page and the dock.
+ *  Not remembered -- a fresh load with no menus would look broken. */
+function setZen(on) {
+  document.body.classList.toggle("zen", on);
+  $("#dock-zen").setAttribute("aria-pressed", String(on));
+  $("#dock-zen").title = on ? "Leave zen mode (Z or Esc)" : "Zen mode — hide the menus (Z)";
+  closePops();
+  toast(on ? "Zen mode — Z or Esc to bring the menus back" : "Zen mode off");
 }
 
 /* ---------- popovers ---------- */
@@ -5545,10 +5697,20 @@ window.addEventListener("keydown", (e) => {
     localStorage.setItem("mdv:bold", state.bold ? "1" : "0");
     applyDocStyle();
     toast(state.bold ? "Bold text on" : "Bold text off");
+  } else if (e.key.toLowerCase() === "z" && state.text) {
+    e.preventDefault();
+    setZen(!document.body.classList.contains("zen"));
+  } else if (e.key === "Escape" && document.body.classList.contains("zen")) {
+    setZen(false);
+  } else if (e.key === "," || e.key === ".") {
+    // The < > keys: , narrows the lanes (wider text), . widens them.
+    e.preventDefault();
+    nudgeBumpers(e.key === "." ? 1 : -1);
   } else if (e.key.toLowerCase() === "d") {
     e.preventDefault();
     setAppearance({ mode: isDark() ? "light" : "dark" });
     toast(isDark() ? "Dark mode" : "Light mode");
+    updateDock();
   } else if (e.key.toLowerCase() === "h" && state.text) {
     e.preventDefault();
     setCaps(!state.caps);
@@ -6147,12 +6309,7 @@ applyTheme();
 applyDocStyle();
 document.body.classList.toggle("no-toc", !state.showToc);
 $("#chk-raw").checked = state.rawHtml;
-for (const btn of $("#seg-bumpers").querySelectorAll("button")) {
-  if (Number(btn.dataset.v) === state.bumpers) {
-    btn.classList.add("active");
-  }
-}
-if (state.bumpers > 0) $("#page").className = `bumper-${state.bumpers}`;
+setBumpers(state.bumpers, true);
 updateSync();
 
 /* ============================================================================
