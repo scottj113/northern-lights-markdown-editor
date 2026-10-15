@@ -32,7 +32,7 @@ Complete feature inventory with status, timeline, and metadata.
 | 12 color palettes (light/dark) | appearance | ✓ | 100% | 7/25 | 7/26 | v1.0 | v1.0 | 1 | critical | UX | 2 modes × 2 families × 3 depths, contrast-validated |
 | Bold all text toggle | appearance | ✓ | 100% | 7/25 | 7/26 | v1.0 | v1.0 | 2 | high | Accessibility | Glare/low-contrast mitigation |
 | Dark mode + image dimming | appearance | ✓ | 100% | 7/25 | 7/26 | v1.0 | v1.0 | 1 | critical | UX | Images auto-dim in dark mode, diagrams re-theme |
-| Theme persistence | state | ✓ | 100% | 7/24 | 7/25 | v1.0 | v1.0 | 1 | critical | UX | Remember palette & text size across sessions |
+| Theme persistence | state | ✓ | 100% | 7/24 | 7/25 | v1.0 | v1.0 | 1 | critical | UX | Remember palette & text size across sessions. Since 10/15 the saved palette really is restored on load (it was silently dropped), and every open copy of the viewer stays in step: change the look in one tab and the others follow; Back/Forward re-reads it |
 | Match system preference | appearance | ✓ | 100% | 7/26 | 7/27 | v1.0 | v1.0 | 2 | medium | UX | Auto-follow OS light/dark mode |
 | Bumper lanes (margin control) | layout | ✓ | 100% | 7/26 | 7/27 | v1.0 | v1.0 | 2 | high | Comfort | 5 margin widths (0%, 10%, 20%, 30%, 40%) for reading comfort |
 | **EDITING** | | | | | | | | | |

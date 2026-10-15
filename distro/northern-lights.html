@@ -2554,6 +2554,11 @@ function sanitize(root) {
    4. Application state + rendering pipeline
    ========================================================================== */
 
+// Above state: loadAppearance() reads it while state is being built, and a
+// const read before its line throws -- which loadAppearance's catch would
+// quietly turn into "use the defaults", losing the saved palette on every load.
+const FAMILIES = { light: ["white", "beige"], dark: ["blue", "slate"] };
+
 const state = {
   name: "",
   path: "",           // full source path; only the VS Code task can supply it
@@ -2593,8 +2598,6 @@ const state = {
   // chose for that mode rather than resetting.
   appearance: loadAppearance(),
 };
-
-const FAMILIES = { light: ["white", "beige"], dark: ["blue", "slate"] };
 
 const OS_DARK = window.matchMedia("(prefers-color-scheme: dark)");
 
@@ -5821,6 +5824,28 @@ function setBumpers(v, quiet) {
   if (!quiet) toast(state.bumpers ? `Bumper lanes: ${state.bumpers}%` : "Bumper lanes off");
 }
 const nudgeBumpers = (d) => setBumpers(state.bumpers + d * 10);
+
+// Every open copy of the viewer shares one set of reading preferences. Without
+// this, another copy -- a duplicated tab, or this page brought back by the Back
+// button -- keeps showing what it had in memory, and its next change writes that
+// stale look back over the newer one.
+function syncReadingPrefs() {
+  const was = activeMode();
+  state.appearance = loadAppearance();
+  state.fontSize = Number(localStorage.getItem("mdv:fontSize")) || BASE_FONT;
+  state.bold = localStorage.getItem("mdv:bold") === "1";
+  state.caps = localStorage.getItem("mdv:caps") === "1";
+  applyTheme(was !== activeMode());
+  applyDocStyle();
+  const b = Number(localStorage.getItem("mdv:bumpers")) || 0;
+  if (b !== state.bumpers) setBumpers(b, true);
+}
+// Fires in the *other* copies whenever one saves; key is null after a clear.
+window.addEventListener("storage", (e) => {
+  if (e.key === null || /^mdv:(appearance|fontSize|bold|caps|bumpers)$/.test(e.key)) syncReadingPrefs();
+});
+// Back/Forward can restore this page whole from memory, skipping start-up.
+window.addEventListener("pageshow", (e) => { if (e.persisted) syncReadingPrefs(); });
 
 for (const btn of $("#seg-bumpers").querySelectorAll("button")) {
   btn.addEventListener("click", () => setBumpers(Number(btn.dataset.v)));
