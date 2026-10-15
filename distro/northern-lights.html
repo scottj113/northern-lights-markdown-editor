@@ -527,6 +527,18 @@ body.tab-dragging, body.tab-dragging #tabs .tab { cursor: grabbing; }
 }
 #tab-colors button:hover, #tab-colors button:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--bg-raised), 0 0 0 4px var(--fg-muted); }
 #tab-colors button[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--bg-raised), 0 0 0 4px var(--accent); }
+/* Hold a tab's × for the bulk-close menu; the × fills while it counts down. */
+#tabs .tab-x.holding { color: var(--fg); background: var(--accent-soft); transition: background .45s; }
+#tab-menu { position: fixed; top: auto; right: auto; }
+#tab-menu[hidden] { display: none; }
+#tab-menu .mi-colors { display: flex; flex-wrap: wrap; gap: 8px; padding: 2px 9px 7px; }
+#tab-menu .mi-colors button {
+  appearance: none; width: 20px; height: 20px; padding: 0; border: 0; border-radius: 50%;
+  cursor: pointer; box-shadow: 0 0 0 1px var(--border-strong);
+}
+#tab-menu .mi-colors button:hover, #tab-menu .mi-colors button:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--bg-raised), 0 0 0 4px var(--fg-muted); }
+#tab-menu .mi-colors button[aria-current="true"] { box-shadow: 0 0 0 2px var(--bg-raised), 0 0 0 4px var(--accent); }
+#tab-menu .mi-label { padding: 7px 9px 6px; font-size: 12.5px; color: var(--fg); }
 
 /* ---------- edit in place ---------- */
 /* A ring drawn with box-shadow, not a border, so hovering never shifts layout. */
@@ -1563,6 +1575,14 @@ body.has-tabs #toast { top: 92px; }   /* clear of the tab row, same gap as witho
 <div id="tabs" role="tablist" aria-label="Open documents"></div>
 <!-- One tab's color picker, opened by double-clicking its dot. -->
 <div id="tab-colors" role="dialog" aria-label="Tab color" hidden></div>
+<div id="tab-menu" class="pop pop-menu" role="menu" aria-label="Close tabs" hidden>
+  <button type="button" class="mi" id="mi-close-this">Close this tab</button>
+  <button type="button" class="mi" id="mi-close-all">Close all tabs</button>
+  <button type="button" class="mi" id="mi-close-others">Keep only this tab</button>
+  <hr>
+  <div class="mi-label">Close all tabs of color</div>
+  <div class="mi-colors" id="mi-close-colors"></div>
+</div>
 
 <div id="find-bar" role="search" hidden>
   <button type="button" id="find-toggle" aria-expanded="false" title="Replace (Ctrl+H)" aria-label="Toggle replace">&#8250;</button>
@@ -3510,18 +3530,26 @@ async function activateTab(i) {
 }
 
 function closeTab(n) {
-  const doomed = state.tabs[n];
-  if (!doomed) return;
-  if (n === state.tabIndex) commitInline();
-  if (doomed.dirty && !window.confirm((doomed.name || "This document") +
-      " has edits that aren't saved to the file. Close it anyway?")) return;
-  if (n !== state.tabIndex) {
-    removeTab(n);
+  if (state.tabs[n]) closeTabs([state.tabs[n]]);
+}
+
+/** Close several tabs at once, asking once if any of them hold unsaved edits. */
+function closeTabs(doomed) {
+  if (!doomed.length) return;
+  const active = state.tabs[state.tabIndex];
+  if (doomed.includes(active)) commitInline();
+  const dirty = doomed.filter((t) => t.dirty);
+  if (dirty.length && !window.confirm(dirty.length === 1
+      ? (dirty[0].name || "This document") + " has edits that aren't saved to the file. Close it anyway?"
+      : dirty.length + " of these tabs have edits that aren't saved to their files. Close them anyway?")) return;
+  poofTabs(doomed);
+  for (const t of doomed) if (t !== active) removeTab(state.tabs.indexOf(t));
+  if (!doomed.includes(active)) {
     renderTabs();
     persist();
     return;
   }
-  commitInline();
+  const n = state.tabIndex;
   removeTab(n);
   state.tabIndex = -1;
   if (state.tabs.length) { activateTab(Math.min(n, state.tabs.length - 1)); return; }
@@ -3539,6 +3567,8 @@ function closeTab(n) {
 // Tab colors on offer; the first, navy, is every tab's default.
 const TAB_COLORS = ["#24407a", "#2d6de9", "#138a8a", "#2e9e5b", "#7a8291",
                     "#d49a12", "#e0702b", "#d9534f", "#d6458f", "#7b4fd0"];
+const TAB_COLOR_NAMES = ["Navy", "Blue", "Teal", "Green", "Grey", "Amber", "Orange", "Red", "Pink", "Purple"];
+const tabColorOf = (t) => TAB_COLORS.includes(t.color) ? t.color : TAB_COLORS[0];
 
 function renderTabs() {
   const n = state.tabs.length;
@@ -3557,11 +3587,67 @@ function renderTabs() {
       '" title="' + esc(tip) + '"' + (color ? ' style="--tc:' + color + '"' : "") + ">" +
       '<span class="tab-dot" title="Double-click to change color"></span>' +
       '<span class="tab-name">' + esc(label) + "</span>" +
-      '<button type="button" class="tab-x" data-x="' + i + '" title="Close (middle-click)" aria-label="Close ' +
+      '<button type="button" class="tab-x" data-x="' + i + '" title="Close (middle-click) — hold for more" aria-label="Close ' +
       esc(label) + '">&times;</button></div>';
   }).join("");
   const a = els.tabs.querySelector(".tab.active");
   if (a) a.scrollIntoView({ block: "nearest", inline: "nearest" });
+}
+
+// A closing tab goes out in a little burst of flame: a frozen copy of it
+// shrinks and blurs away where it stood while sparks puff up and fade. The row
+// is rebuilt straight after, so the copy lives on <body>, styles baked in.
+const REDUCED_MOTION = window.matchMedia("(prefers-reduced-motion: reduce)");
+const FLAME = ["#fff3b0", "#ffd23f", "#ff9f1c", "#ff5e1a", "#e8361d"];
+function freezeStyle(src, dst) {
+  const cs = getComputedStyle(src);
+  for (const p of cs) if (!/^(transition|animation)/.test(p)) dst.style.setProperty(p, cs.getPropertyValue(p));
+  for (let i = 0; i < src.children.length; i++) freezeStyle(src.children[i], dst.children[i]);
+}
+function poofTabs(doomed) {
+  if (REDUCED_MOTION.matches || !document.body.classList.contains("has-tabs")) return;
+  const row = els.tabs.getBoundingClientRect();
+  for (const t of doomed) {
+    const el = els.tabs.querySelector('.tab[data-i="' + state.tabs.indexOf(t) + '"]');
+    if (!el) continue;
+    const r = el.getBoundingClientRect();
+    if (r.right < row.left || r.left > row.right) continue;   // scrolled out of view
+    const ghost = el.cloneNode(true);
+    freezeStyle(el, ghost);
+    Object.assign(ghost.style, { position: "fixed", left: r.left + "px", top: r.top + "px",
+      width: r.width + "px", height: r.height + "px", margin: "0", zIndex: "70", pointerEvents: "none" });
+    ghost.removeAttribute("data-i");
+    document.body.appendChild(ghost);
+    ghost.animate([{ transform: "scale(1)", filter: "blur(0)", opacity: 1 },
+                   { transform: "scale(.6)", filter: "blur(3px)", opacity: 0 }],
+                  { duration: 260, easing: "ease-in", fill: "forwards" });
+    // Timers, not onfinish: a background tab may not run animations to the end.
+    setTimeout(() => ghost.remove(), 300);
+    const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+    // One bright flash, then a ring of sparks drifting up as they burn out.
+    const spark = (size, color, frames, duration, delay) => {
+      const p = document.createElement("div");
+      Object.assign(p.style, { position: "fixed", left: cx - size / 2 + "px", top: cy - size / 2 + "px",
+        width: size + "px", height: size + "px", borderRadius: "50%", zIndex: "71", pointerEvents: "none",
+        background: "radial-gradient(circle, " + FLAME[0] + " 0%, " + color + " 38%, " + color + "00 72%)",
+        boxShadow: "0 0 " + size / 2 + "px " + color + "66" });
+      document.body.appendChild(p);
+      p.animate(frames, { duration, delay, easing: "cubic-bezier(.2,.7,.3,1)", fill: "both" });
+      setTimeout(() => p.remove(), duration + delay + 40);
+    };
+    spark(40, FLAME[2], [{ transform: "scale(.2)", opacity: .95 }, { transform: "scale(1.7)", opacity: 0 }], 360, 0);
+    const n = 11;
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * Math.PI * 2 + Math.random() * .5;
+      const d = Math.min(r.width / 2, 40) + Math.random() * 18;
+      const dx = Math.cos(a) * d, dy = Math.sin(a) * d * .55 - 14 - Math.random() * 16;
+      spark(10 + Math.random() * 9, FLAME[1 + i % (FLAME.length - 1)], [
+        { transform: "translate(0,0) scale(.5)", opacity: 1 },
+        { transform: "translate(" + dx * .7 + "px," + dy * .6 + "px) scale(1.25)", opacity: .9, offset: .35 },
+        { transform: "translate(" + dx + "px," + (dy - 12) + "px) scale(0)", opacity: 0 }],
+        480 + Math.random() * 260, Math.random() * 60);
+    }
+  }
 }
 
 const canPick = typeof window.showOpenFilePicker === "function";
@@ -5850,6 +5936,7 @@ const POPS = [["#btn-display", "#pop-display"], ["#btn-more", "#pop-more"],
 
 function closePops(except) {
   closeTabColors();
+  $("#tab-menu").hidden = true;
   for (const [btn, pop] of POPS) {
     if (pop === except) continue;
     $(pop).hidden = true;
@@ -5971,8 +6058,7 @@ els.tabs.addEventListener("click", (e) => {
 const tabColors = $("#tab-colors");
 tabColors.innerHTML = TAB_COLORS.map((c, n) =>
   '<button type="button" data-c="' + c + '" style="background:' + c + '" aria-label="' +
-  ["Navy (default)", "Blue", "Teal", "Green", "Grey", "Amber", "Orange", "Red", "Pink", "Purple"][n] +
-  '" title="' + (n ? "" : "Navy (default)") + '"></button>').join("");
+  TAB_COLOR_NAMES[n] + (n ? "" : " (default)") + '" title="' + (n ? "" : "Navy (default)") + '"></button>').join("");
 let tabColorFor = null;
 function openTabColors(tab, dot) {
   closePops();
@@ -5996,6 +6082,84 @@ tabColors.addEventListener("click", (e) => {
   closeTabColors();
   renderTabs();
   persist();
+});
+
+// Hold a tab's × (or right-click it) for the bulk-close menu. A quick click
+// still closes just that tab; once the hold fires, the click that ends it is
+// eaten so the tab survives. HOLD_MS is the same half-second Windows uses for
+// press-and-hold.
+const HOLD_MS = 500;
+const tabMenu = $("#tab-menu");
+let tabMenuFor = null, xHold = null;
+function cancelXHold() {
+  if (!xHold) return;
+  clearTimeout(xHold.timer);
+  xHold.x.classList.remove("holding");
+  xHold = null;
+}
+els.tabs.addEventListener("pointerdown", (e) => {
+  const x = e.target.closest(".tab-x");
+  if (!x || e.button !== 0) return;
+  cancelXHold();
+  x.classList.add("holding");
+  xHold = { x, id: e.pointerId, timer: setTimeout(() => {
+    const tab = state.tabs[Number(x.dataset.x)];
+    cancelXHold();
+    // Swallow the click this press ends in, wherever the pointer is let go.
+    const eat = (c) => { c.stopPropagation(); c.preventDefault(); };
+    window.addEventListener("click", eat, { capture: true, once: true });
+    window.addEventListener("pointerup", () =>
+      setTimeout(() => window.removeEventListener("click", eat, { capture: true }), 0), { once: true });
+    if (tab) openTabMenu(tab, x);
+  }, HOLD_MS) };
+});
+for (const type of ["pointerup", "pointercancel"]) {
+  els.tabs.addEventListener(type, (e) => { if (xHold && e.pointerId === xHold.id) cancelXHold(); });
+}
+// Sliding off the × calls the hold off.
+els.tabs.addEventListener("pointerout", (e) => {
+  if (xHold && e.pointerId === xHold.id && !xHold.x.contains(e.relatedTarget)) cancelXHold();
+});
+els.tabs.addEventListener("contextmenu", (e) => {
+  const x = e.target.closest(".tab-x");
+  if (!x || !state.tabs[Number(x.dataset.x)]) return;
+  e.preventDefault();
+  openTabMenu(state.tabs[Number(x.dataset.x)], x);
+});
+
+function openTabMenu(tab, x) {
+  closePops();
+  tabMenuFor = tab;
+  $("#mi-close-others").disabled = state.tabs.length < 2;
+  // Only the colors some tab is wearing; the held tab's own is ringed.
+  const counts = new Map();
+  for (const t of state.tabs) counts.set(tabColorOf(t), (counts.get(tabColorOf(t)) || 0) + 1);
+  $("#mi-close-colors").innerHTML = TAB_COLORS.filter((c) => counts.has(c)).map((c) => {
+    const tip = TAB_COLOR_NAMES[TAB_COLORS.indexOf(c)] + " — " + counts.get(c) + " tab" + (counts.get(c) > 1 ? "s" : "");
+    return '<button type="button" data-c="' + c + '" style="background:' + c + '" title="' + tip +
+      '" aria-label="Close ' + tip + '"' + (c === tabColorOf(tab) ? ' aria-current="true"' : "") + "></button>";
+  }).join("");
+  tabMenu.hidden = false;
+  const r = x.getBoundingClientRect();
+  const w = tabMenu.offsetWidth;
+  tabMenu.style.left = Math.max(8, Math.min(r.right - w, innerWidth - w - 8)) + "px";
+  tabMenu.style.top = r.bottom + 8 + "px";
+  $("#mi-close-this").focus();   // the gentlest choice, should Enter come next
+}
+tabMenu.addEventListener("click", (e) => {
+  e.stopPropagation();
+  const tab = tabMenuFor;
+  const b = e.target.closest("button");
+  if (!b || !tab || b.disabled) return;
+  let doomed;
+  if (b.id === "mi-close-this") doomed = [tab];
+  else if (b.id === "mi-close-others") doomed = state.tabs.filter((t) => t !== tab);
+  else if (b.id === "mi-close-all") doomed = state.tabs.slice();
+  else if (b.dataset.c) doomed = state.tabs.filter((t) => tabColorOf(t) === b.dataset.c);
+  else return;
+  tabMenu.hidden = true;
+  tabMenuFor = null;
+  closeTabs(doomed);
 });
 els.tabs.addEventListener("keydown", (e) => {
   if (e.key !== "Enter" && e.key !== " ") return;

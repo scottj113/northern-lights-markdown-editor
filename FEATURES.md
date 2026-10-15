@@ -94,6 +94,7 @@ Complete feature inventory with status, timeline, and metadata.
 | Embedded images not displayed | render | ✓ | 100% | 10/10 | 10/10 | v3.0 | | 3 | low | Decision | base64 data: images (Markdown or raw <img>, any type) show "🖼 Embedded image not shown: <alt>" instead of the image; data: in srcset/poster dropped. Source view shows the file as written |
 | Markdown fixer | edit | ✓ | 100% | 10/10 | 10/10 | v3.0 | | 2 | high | Quality | 🩹 badge appears only when a document has fixable breakage: #heading with no space, unclosed code fence, table with no blank line before it, divider row with the wrong column count, -item list markers, [text] (url). One by one with a before/after (Fix / Skip), or Fix all; Hurry mode (remembered) fixes everything unattended. Saves like any edit; Undo. Skips code, front matter, comments; off in source view |
 | Undo / redo history | edit | ✓ | 100% | 10/10 | 10/10 | v3.0 | | 1 | high | Safety | Toolbar ↶ / ↷ (Ctrl+Z / Ctrl+Y outside text boxes): one step per applied block or section edit (each time a block loses focus — the same paragraph twice is two steps), replace, or fix. Last 100 per tab (Word's default depth), in memory, with a size budget on very large files; each step saves and scrolls to the change with a brief highlight. Cleared if the file changes on disk. Typing inside an open block keeps the browser's own Ctrl+Z. Replaces the find/fixer one-shot Undo buttons |
+| Bulk-close tabs (hold ×) | nav | ✓ | 100% | 10/15 | 10/15 | v3.0 | | 2 | medium | Workflow | Hold a tab's × for half a second (or right-click it): Close this tab, Close all tabs, Keep only this tab, or Close all tabs of a color (only colors in use are offered, with counts; the held tab's is ringed). A quick click still closes just that tab. One "unsaved edits" question for the whole batch. Every closing tab goes out in a little burst of flame (off under the system's reduce-motion setting) |
 | Tabs remembered across sessions | state | ✓ | 100% | 10/10 | 10/10 | v3.0 | | 1 | high | Workflow | Tab text saved to localStorage (2M-char budget); restored tabs show in italics as saved copies until the file is opened again (file handles can't survive a refresh on file://) |
 
 ## Legend: Feature Type Codes
@@ -120,10 +121,10 @@ Complete feature inventory with status, timeline, and metadata.
 
 ## Summary Stats
 
-- **Total Features:** 66, all shipped (✓)
+- **Total Features:** 67, all shipped (✓)
 - **v1.0:** 46 rows (7/24–7/31) — some since reworked in v3.0
 - **v2.0:** 6 (table enhancements + logo modes, 7/31–8/1)
-- **v3.0:** 13 so far (data layer, raw HTML, tabs, editing, find & replace, connect folder; to 10/10)
+- **v3.0:** 14 so far (data layer, raw HTML, tabs, editing, find & replace, connect folder, bulk tab close; to 10/15)
 - **Architecture:** Single-file HTML application (~6,100 lines, ~270 KB)
 - **Dependencies:** Mermaid (vendored, MIT licensed)
 - **Installation:** None required — bookmark the HTML file
