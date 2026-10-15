@@ -713,6 +713,69 @@ body.source-view:not(.blank) #raw-view {
   border: 1px solid var(--border); border-radius: 8px;
   font: calc(var(--doc-size, 15.5px) * .86)/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
+/* Editing the source (✎ Edit while it shows): the file in a plain text box,
+   line numbers beside it, framed in the accent so it's clearly live. */
+#raw-edit { display: none; }
+body.source-view.source-editing:not(.blank) #raw-view { display: none; }
+body.source-view.source-editing:not(.blank) #raw-edit {
+  display: grid; grid-template-columns: auto 1fr; padding: 10px 0;
+  background: var(--bg); color: var(--fg); border: 1px solid var(--accent); border-radius: 8px;
+  font: calc(var(--doc-size, 15.5px) * .86)/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+#raw-edit-gutter {
+  margin: 0; width: 4.2em; padding-right: 12px; text-align: right; color: var(--fg-faint);
+  font: inherit; white-space: pre; user-select: none; -webkit-user-select: none;
+}
+#raw-edit-ta {
+  display: block; width: 100%; min-height: 3em; margin: 0; padding: 0 14px 0 0;
+  font: inherit; color: inherit; background: transparent; border: 0; outline: none; resize: none;
+  white-space: pre; overflow-x: auto; overflow-y: hidden; tab-size: 4;
+}
+#src-leave #sl-save { background: var(--accent); border-color: var(--accent); color: var(--bg-raised); font-weight: 600; }
+/* Floating 💾 Save: bottom middle, there only while the editor holds unsaved changes. */
+#src-save {
+  position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%); z-index: 45;
+  display: inline-flex; align-items: center; gap: 8px; appearance: none; cursor: pointer;
+  padding: 9px 16px; border: 0; border-radius: 999px; box-shadow: var(--shadow);
+  background: var(--accent); color: var(--bg-raised);
+  font: 600 14px/1 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+#src-save:hover { filter: brightness(1.08); animation-play-state: paused; }
+#src-save[hidden] { display: none; }
+/* It breathes -- a slow grow and shrink -- for as long as there's something
+   unsaved, after a bigger hop when it first turns up. */
+@keyframes nl-breathe { 0%, 100% { transform: translateX(-50%) scale(1); } 50% { transform: translateX(-50%) scale(1.07); } }
+@keyframes nl-arrive { 0%, 100% { transform: translateX(-50%) scale(1); } 45% { transform: translateX(-50%) scale(1.18); } }
+#src-save { animation: nl-arrive .42s ease-in-out 2, nl-breathe 2.4s ease-in-out .84s infinite; }
+@media (prefers-reduced-motion: reduce) { #src-save { animation: none; } }
+#src-save kbd {
+  font: 500 11px/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; padding: 3px 5px;
+  border-radius: 4px; background: rgba(255, 255, 255, .2); color: inherit; border: 0;
+}
+/* Leaving the Markdown view with unsaved changes: Save, Discard or Keep editing. */
+#src-leave {
+  position: fixed; left: 50%; top: 96px; transform: translateX(-50%); z-index: 61;
+  padding: 12px 14px; background: var(--bg-raised); color: var(--fg);
+  border: 1px solid var(--border-strong); border-radius: 10px; box-shadow: var(--shadow);
+  font: 13.5px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+#src-leave[hidden] { display: none; }
+#src-leave p { margin: 0; }
+#src-leave .sc-btns { display: flex; gap: 6px; margin-top: 10px; }
+#src-leave button {
+  appearance: none; font: inherit; font-size: 12.5px; padding: 5px 12px; border-radius: 6px; cursor: pointer;
+  border: 1px solid var(--border-strong); background: var(--bg); color: var(--fg);
+}
+#src-leave button:hover { background: var(--accent-soft); }
+#src-leave #sl-save:hover { background: var(--accent); filter: brightness(1.08); }
+/* The fixer's ladybug: red with dark spots on light palettes; on dark ones an
+   albino -- pale shell, coral spots -- since black spots vanish against the bar. */
+#btn-fix .bug { width: 16px; height: 16px; vertical-align: -3px; --bug-shell: #e0362c; --bug-ink: #221f1c; }
+:root[data-pal^="blue"] #btn-fix .bug, :root[data-pal^="slate"] #btn-fix .bug { --bug-shell: #f3efe6; --bug-ink: #ff8f7e; }
+.bug .ink { fill: var(--bug-ink); }
+.bug .leg { fill: none; stroke: var(--bug-ink); stroke-width: 1.1; stroke-linecap: round; }
+.bug .shell { fill: var(--bug-shell); stroke: var(--bug-ink); stroke-width: .9; }
+.bug .seam { stroke: var(--bug-ink); stroke-width: .9; }
 /* ---------- reading dock + zen mode ---------- */
 #dock {
   position: fixed; right: 18px; bottom: 18px; z-index: 40;
@@ -1470,7 +1533,7 @@ body.has-tabs #toast { top: 92px; }   /* clear of the tab row, same gap as witho
 
   <!-- Markdown fixes: shown only when the document has some. -->
   <div class="pop-wrap">
-    <button type="button" class="btn" id="btn-fix" hidden aria-haspopup="true" aria-expanded="false">&#129657; <span id="fix-count"></span></button>
+    <button type="button" class="btn" id="btn-fix" hidden aria-haspopup="true" aria-expanded="false"><svg class="bug" viewBox="0 0 16 16" aria-hidden="true"><path class="leg" d="M6.4 2.7 5.1 1.2M9.6 2.7l1.3-1.5M3.3 7.6l-1.9-.9M3 10.6H1.1M3.6 13.2l-1.6 1.3M12.7 7.6l1.9-.9M13 10.6h1.9M12.4 13.2l1.6 1.3"/><circle class="ink" cx="8" cy="4.5" r="2.4"/><ellipse class="shell" cx="8" cy="10" rx="5.1" ry="5.2"/><path class="seam" d="M8 4.9v10.3"/><circle class="ink" cx="5.6" cy="8.6" r="1.05"/><circle class="ink" cx="10.4" cy="8.6" r="1.05"/><circle class="ink" cx="5.9" cy="12.1" r=".95"/><circle class="ink" cx="10.1" cy="12.1" r=".95"/></svg> <span id="fix-count"></span></button>
     <div class="pop" id="pop-fix" hidden>
       <p class="pop-head">Markdown fixes <span id="fix-of"></span></p>
       <div id="fix-card">
@@ -1650,6 +1713,16 @@ body.has-tabs #toast { top: 92px; }   /* clear of the tab row, same gap as witho
       </div>
       <article class="md" id="doc"></article>
       <div id="raw-view" class="src-lines" aria-label="Markdown source (read-only)"></div>
+      <div id="raw-edit"><pre id="raw-edit-gutter" aria-hidden="true"></pre><textarea id="raw-edit-ta" wrap="off" spellcheck="false" aria-label="Markdown source"></textarea></div>
+      <button type="button" id="src-save" hidden title="Save your changes to the Markdown (Ctrl+S)">&#128190; Save <kbd>Ctrl+S</kbd></button>
+      <div id="src-leave" role="dialog" aria-label="Unsaved changes" hidden>
+        <p><b>Save your changes to the Markdown?</b></p>
+        <div class="sc-btns">
+          <button type="button" id="sl-save">Save</button>
+          <button type="button" id="sl-discard">Discard</button>
+          <button type="button" id="sl-keep">Keep editing</button>
+        </div>
+      </div>
     </div>
   </div>
   <!-- Split view: read-only Markdown for whatever block you're on. -->
@@ -2832,7 +2905,7 @@ function render() {
   els.name.textContent = state.name || "Pasted markdown";
   els.name.classList.toggle("dirty", state.dirty);
   $("#btn-edit").hidden = false;
-  $("#btn-edit").disabled = state.sourceView;
+  $("#btn-edit").disabled = false;   // in source view it edits the Markdown itself
   $("#btn-source").hidden = false;
   document.title = state.name || "Pasted markdown";
   updatePathPanel();
@@ -4232,6 +4305,9 @@ function closeInline() {
  * find it again in the re-rendered page; null when nothing changed.
  */
 function commitInline(cancel) {
+  // Every way of replacing the document comes through here first; an open
+  // source edit has to be settled before the text changes under it.
+  if (srcEd.on) settleSourceEdit();
   if (!inlineEd.ta) return null;
   const { start, end, original } = inlineEd;
   const value = inlineEd.ta.value;
@@ -4549,6 +4625,11 @@ state.sourceView = false;
 
 function setSourceView(on) {
   on = !!on;
+  // Leaving with unsaved changes: Save, Discard or Keep editing -- never silently.
+  if (!on && srcEd.on) {
+    if (srcDirty()) { askLeaveSource(); return; }
+    setSourceEdit(false);
+  }
   $("#btn-source").setAttribute("aria-pressed", String(on));
   if (on === state.sourceView) return;
   // Keep your place: the line at the top of the screen in one view is where
@@ -4563,14 +4644,160 @@ function setSourceView(on) {
   }
   state.sourceView = on;
   document.body.classList.toggle("source-view", on);
-  $("#btn-edit").disabled = on;   // greyed, not hidden: it comes back when source view ends
+  // In source view ✎ Edit edits the Markdown itself (see setSourceEdit).
+  $("#btn-edit").title = on ? "Edit the Markdown (Ctrl+E)" : "Edit in place: click any block to edit its Markdown (Ctrl+E)";
   paintRawView();
   placeSrcToggle();
   if (keep !== null) on ? scrollRawTo(keep) : scrollDocTo(keep);
   refreshFind();   // the other view's text
   refreshFixer();   // off in source view
-  if (state.text) toast(on ? "Showing the Markdown source — read-only" : "Showing the rendered page");
+  if (state.text) toast(on ? "Showing the Markdown source — ✎ Edit to change it" : "Showing the rendered page");
 }
+
+/* ------------------------------------------------------------ source edit --
+   ✎ Edit (Ctrl+E) while the source shows turns it into a text box: the whole
+   file, line numbers beside it. Ctrl+S or the floating 💾 Save saves and
+   carries on; ✎ Edit again saves and finishes; Esc throws the changes away.
+   Leaving the Markdown view with unsaved changes asks: Save, Discard or Keep
+   editing.
+
+   Saving never waits on the Markdown being right -- the 🐞 fixer on the page
+   finds what's broken and fixes it. A save with problems in it just says so.
+   -------------------------------------------------------------------------- */
+
+const srcEd = { on: false, original: "", busy: false };
+const srcTa = $("#raw-edit-ta"), srcGutter = $("#raw-edit-gutter");
+
+// The text box only knows "\n"; the file keeps whatever endings it had.
+const srcFileText = (v) => { const eol = eolOf(srcEd.original); return eol === "\n" ? v : v.replace(/\n/g, eol); };
+const srcDirty = () => srcEd.on && srcFileText(srcTa.value) !== srcEd.original;
+
+/** The floating 💾 Save: there whenever the text box holds something unsaved. */
+function paintSaveFloat() { $("#src-save").hidden = !srcDirty(); }
+
+/** "Saved", plus a word about anything the 🐞 fixer will find. */
+function savedMessage() {
+  const n = lintMarkdown(state.text).length;
+  return "Saved" + (n ? " — " + n + " Markdown problem" + (n > 1 ? "s" : "") +
+    "; the bug button on the page can fix " + (n > 1 ? "them" : "it") : "");
+}
+
+/** 💾 Save / Ctrl+S. */
+function saveSourceNow() {
+  saveSourceEdit(false);
+  if (!state.handle) saveDocument(true);   // nowhere to write yet: Save As
+  else toast(savedMessage());
+}
+
+/** Leaving the Markdown view with unsaved changes: ask, never assume. */
+function askLeaveSource() {
+  els.toast.classList.remove("show");   // or a lingering tip covers the question
+  $("#src-leave").hidden = false;
+  $("#sl-save").focus();
+}
+const hideLeaveSource = () => { $("#src-leave").hidden = true; };
+$("#sl-save").addEventListener("click", () => {
+  hideLeaveSource();
+  saveSourceEdit(true);
+  setSourceView(false);
+  toast(savedMessage());
+});
+$("#sl-discard").addEventListener("click", () => {
+  hideLeaveSource();
+  setSourceEdit(false);
+  setSourceView(false);
+  toast("Changes thrown away");
+});
+$("#sl-keep").addEventListener("click", () => { hideLeaveSource(); srcTa.focus(); });
+$("#src-save").addEventListener("click", saveSourceNow);
+
+function sizeSrcEditor() {
+  const n = srcTa.value.split("\n").length;
+  if (Number(srcGutter.dataset.n) !== n) {
+    srcGutter.textContent = Array.from({ length: n }, (_, i) => i + 1).join("\n");
+    srcGutter.dataset.n = n;
+  }
+  // Tall enough for every line, so the page scrolls rather than the box.
+  const lh = parseFloat(getComputedStyle(srcTa).lineHeight) || 20;
+  srcTa.style.height = Math.ceil(n * lh + (srcTa.offsetHeight - srcTa.clientHeight)) + "px";
+}
+
+/** Cursor to the start of a line, scrolled to the top of the page. */
+function gotoSrcLine(line) {
+  const lines = srcTa.value.split("\n");
+  line = Math.max(0, Math.min(line, lines.length - 1));
+  let pos = 0;
+  for (let i = 0; i < line; i++) pos += lines[i].length + 1;
+  srcTa.focus({ preventScroll: true });
+  srcTa.setSelectionRange(pos, pos);
+  const lh = parseFloat(getComputedStyle(srcTa).lineHeight) || 20;
+  const y = srcTa.getBoundingClientRect().top - els.scroller.getBoundingClientRect().top + els.scroller.scrollTop + line * lh;
+  els.scroller.scrollTo({ top: Math.max(0, y), behavior: "instant" });
+}
+
+function setSourceEdit(on) {
+  on = !!on && state.sourceView && !!state.text;
+  if (on === srcEd.on) return;
+  const top = on ? rawTopLine() : null;   // read while the line view still shows
+  srcEd.on = on;
+  document.body.classList.toggle("source-editing", on);
+  $("#btn-edit").setAttribute("aria-pressed", String(on));
+  hideLeaveSource();
+  if (on) {
+    srcEd.original = state.text;
+    srcTa.value = state.text.replace(/\r\n?/g, "\n");
+    sizeSrcEditor();
+    gotoSrcLine(top || 0);
+    toast("Editing the Markdown — Ctrl+S saves · ✎ Edit saves and finishes · Esc cancels");
+  } else {
+    srcTa.value = "";
+    paintRawView();
+  }
+  paintSaveFloat();
+}
+
+/** Write the text box to the file. True when there was something to save. */
+function saveSourceEdit(finish) {
+  if (!srcEd.on) return false;
+  const text = srcFileText(srcTa.value), changed = text !== srcEd.original;
+  if (changed) {
+    srcEd.original = text;
+    srcEd.busy = true;
+    try { applyFindEdit(text, "source"); } finally { srcEd.busy = false; }
+  }
+  if (finish) setSourceEdit(false);
+  else paintSaveFloat();
+  return changed;
+}
+
+/** Something else is about to replace the document (a tab switch, a drop, a
+ *  reload): save an open source edit first, then close it. */
+function settleSourceEdit() {
+  if (!srcEd.on || srcEd.busy) return;
+  saveSourceEdit(true);
+}
+
+srcTa.addEventListener("input", () => {
+  sizeSrcEditor();
+  paintSaveFloat();
+});
+srcTa.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") {
+    e.preventDefault();
+    e.stopPropagation();
+    if (srcFileText(srcTa.value) !== srcEd.original && !window.confirm("Throw away your changes to the Markdown?")) return;
+    setSourceEdit(false);
+    toast("Changes thrown away");
+  } else if (e.key === "Tab" && !e.ctrlKey && !e.altKey && !e.metaKey) {
+    // Indent rather than leave the box: lists and code need it.
+    e.preventDefault();
+    srcTa.setRangeText("  ", srcTa.selectionStart, srcTa.selectionEnd, "end");
+    sizeSrcEditor();
+  }
+});
+window.addEventListener("beforeunload", (e) => {
+  if (srcEd.on && srcFileText(srcTa.value) !== srcEd.original) e.preventDefault();
+});
 
 function paintRawView() {
   const view = $("#raw-view");
@@ -4900,7 +5127,7 @@ function historyValid(h) {
   return h;
 }
 
-const STEP_NAMES = { edit: "block edit", replace: "replace", fix: "fix" };
+const STEP_NAMES = { edit: "block edit", replace: "replace", fix: "fix", source: "Markdown edit" };
 
 function paintUndo() {
   const pill = $("#undo-pill");
@@ -4944,7 +5171,7 @@ $("#btn-redo").addEventListener("click", redoEdit);
 
 /* ------------------------------------------------------------------ fixer --
    Markdown fixes: mistakes that clearly render wrong, where the intent is
-   obvious. Unobtrusive -- a 🩹 badge in the toolbar appears only when the
+   obvious. Unobtrusive -- a 🐞 badge in the toolbar appears only when the
    document has some, and nothing opens on its own.
 
    One by one (the default): the badge's panel shows each issue with a
@@ -5127,17 +5354,22 @@ function skipOne() {
   refreshFixer();
 }
 
-/** Fix everything: repeatedly, since one fix can shift or change another. */
-function fixAll(auto) {
-  commitInline();
-  const before = state.text;
-  let text = before, count = 0;
+/** Fix everything in a text: repeatedly, since one fix can shift or change another. */
+function fixAllIn(text, keep) {
+  let count = 0;
   for (let guard = 0; guard < 500; guard++) {
-    const left = lintMarkdown(text).filter((i) => auto || !fixer.skipped.has(fixSig(i)));
+    const left = lintMarkdown(text).filter((i) => !keep || keep(i));
     if (!left.length) break;
     text = applyFixTo(text, left[0]);
     count++;
   }
+  return { text, count };
+}
+
+function fixAll(auto) {
+  commitInline();
+  const before = state.text;
+  const { text, count } = fixAllIn(before, auto ? null : (i) => !fixer.skipped.has(fixSig(i)));
   if (!count) return;
   fixer.note = (auto ? "Hurry mode fixed " : "Fixed ") + count + " issue" + (count === 1 ? "" : "s") +
     ". Check the document reads right — refresh, or open it in another viewer.";
@@ -5761,7 +5993,13 @@ function refreshNow() {
 $("#btn-refresh").addEventListener("click", refreshNow);
 $("#btn-watch").addEventListener("click", toggleWatch);
 $("#mi-edit").addEventListener("click", () => editSection(activeHeadingId()));
-$("#btn-edit").addEventListener("click", () => setEditMode(!state.editMode));
+/** ✎ Edit / Ctrl+E: edit in place on the page, or the Markdown itself in source view. */
+function toggleEdit() {
+  if (!state.sourceView) setEditMode(!state.editMode);
+  else if (srcEd.on) toast(saveSourceEdit(true) ? savedMessage() : "Done editing the Markdown");
+  else setSourceEdit(true);
+}
+$("#btn-edit").addEventListener("click", toggleEdit);
 $("#mi-export").addEventListener("click", exportHtml);
 $("#mi-print").addEventListener("click", () => window.print());
 $("#mi-clear-cache").addEventListener("click", clearCache);
@@ -6410,9 +6648,16 @@ window.addEventListener("keydown", (e) => {
   }
   if (mod && e.key.toLowerCase() === "e" && state.text) {
     e.preventDefault();
-    setEditMode(!state.editMode);
+    toggleEdit();
     return;
   }
+  // In the source editor, Ctrl+S saves the text box (or says why it can't).
+  if (mod && e.key.toLowerCase() === "s" && srcEd.on) {
+    e.preventDefault();
+    saveSourceNow();
+    return;
+  }
+  if (e.key === "Escape" && !$("#src-leave").hidden) { hideLeaveSource(); srcTa.focus(); return; }
   if (mod && e.key.toLowerCase() === "p" && state.text) {
     e.preventDefault();
     window.print();
@@ -7583,7 +7828,7 @@ title: Fixer playground — #this-is-front-matter-and-must-not-change
 # Try the Markdown fixer
 
 This page is **broken on purpose**. Northern Lights spots common Markdown
-mistakes and offers to fix them: the **🩹** badge in the toolbar shows how many
+mistakes and offers to fix them: the **🐞** badge in the toolbar shows how many
 it found here.
 
 - **One at a time**: click the badge to step through them, with a before and

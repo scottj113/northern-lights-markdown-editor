@@ -256,12 +256,15 @@ italics), and one **Connect folder** relinks them all. A browser restriction, no
   section in red.
 - **Markdown pane** — while editing, **‹/› Markdown** on the editable block (or
   `Ctrl+\`) shows its source, read-only, with the file's line numbers.
-- **View Markdown source** — **</> Markdown** in the toolbar: the whole file as Markdown instead of the
-  rendered page. Read-only; editing is off while it shows.
+- **View and edit the Markdown** — **</> Markdown** in the toolbar: the whole file as Markdown instead of the
+  rendered page. **✎ Edit** (`Ctrl+E`) there makes it editable: `Ctrl+S` (or the floating **💾 Save**,
+  there while anything is unsaved) saves, **✎ Edit** again saves and finishes, `Esc` cancels.
+  Leaving the Markdown view with unsaved changes asks: Save, Discard or Keep editing. If what
+  you saved has a Markdown mistake in it, the save message says so, and **🐞** on the page fixes it.
 - **Find and replace** — `Ctrl+F` / `Ctrl+H`, with match case, whole word and regex.
 - **Markdown fixer** — common mistakes (a heading with no space after `#`, a table
   glued to the line above, a link broken by a space, a code block that never closes)
-  show as a **🩹** badge in the toolbar. Step through them with a before and after
+  show as a **🐞** badge in the toolbar. Step through them with a before and after
   for each, or **Fix all**. **Hurry mode** fixes every document as you open it, until
   you untick it. Nothing broken to hand? **⋮ → Try the Markdown fixer**
   opens a page that's broken on purpose, fresh every time, with Hurry mode off so
