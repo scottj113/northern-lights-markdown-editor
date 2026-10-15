@@ -242,7 +242,8 @@ italics), and one **Connect folder** relinks them all. A browser restriction, no
 - **Contents sidebar** with scroll-spy — drag its edge to make it wider or narrower
   (double-click to reset). Per-block copy buttons on code.
 - **Tabs** — every document you open, remembered across sessions. `[` and `]` switch;
-  drag to reorder; double-click a tab's dot to give it a color. × or middle-click closes;
+  drag to reorder. Click a tab's dot to pick its color, or double-click it to step to the next.
+  Drop or pick several files and each opens as a tab. × or middle-click closes;
   hold the × (or right-click it) to close all tabs, keep only this one, or close every
   tab of a color. Closed tabs go out in a little puff of flame.
 - **Edit in place** — `Ctrl+E`, then click a block to edit its Markdown where it sits.

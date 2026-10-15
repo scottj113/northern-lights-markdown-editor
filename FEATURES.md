@@ -46,7 +46,7 @@ Complete feature inventory with status, timeline, and metadata.
 | File picker (Ctrl+O) | input | ✓ | 100% | 7/24 | 7/25 | v1.0 | v1.0 | 1 | critical | UX | Browse and select files |
 | Paste markdown (Ctrl+V) | input | ✓ | 100% | 7/25 | 7/25 | v1.0 | v1.0 | 2 | high | UX | Paste text directly onto page |
 | Project folder path storage | state | ✓ | 100% | 7/28 | 7/28 | v1.0 | v1.0 | 2 | medium | UX | Remember folder location for editing |
-| Drop multiple files | input | ✓ | 100% | 7/26 | 7/27 | v1.0 | v1.0 | 2 | medium | UX | Create document set from multi-file drag |
+| Drop multiple files | input | ✓ | 100% | 7/26 | 7/27 | v1.0 | v1.0 | 2 | medium | UX | Create document set from multi-file drag. Since 10/15 each file also opens as its own tab (up to 12; any more wait in the sidebar list), and Open picks several at once too |
 | **LIVE RELOAD** | | | | | | | | | |
 | Refresh file (Ctrl+R) | sync | ✓ | 100% | 7/28 | 7/28 | v1.0 | v1.0 | 1 | critical | Workflow | Re-read file from disk on demand |
 | Watch mode (auto-refresh) | sync | ✓ | 100% | 7/28 | 7/28 | v1.0 | v1.0 | 1 | critical | Workflow | Auto-reload whenever file changes |
@@ -95,6 +95,7 @@ Complete feature inventory with status, timeline, and metadata.
 | Markdown fixer | edit | ✓ | 100% | 10/10 | 10/10 | v3.0 | | 2 | high | Quality | 🩹 badge appears only when a document has fixable breakage: #heading with no space, unclosed code fence, table with no blank line before it, divider row with the wrong column count, -item list markers, [text] (url). One by one with a before/after (Fix / Skip), or Fix all; Hurry mode (remembered) fixes everything unattended. Saves like any edit; Undo. Skips code, front matter, comments; off in source view |
 | Undo / redo history | edit | ✓ | 100% | 10/10 | 10/10 | v3.0 | | 1 | high | Safety | Toolbar ↶ / ↷ (Ctrl+Z / Ctrl+Y outside text boxes): one step per applied block or section edit (each time a block loses focus — the same paragraph twice is two steps), replace, or fix. Last 100 per tab (Word's default depth), in memory, with a size budget on very large files; each step saves and scrolls to the change with a brief highlight. Cleared if the file changes on disk. Typing inside an open block keeps the browser's own Ctrl+Z. Replaces the find/fixer one-shot Undo buttons |
 | Bulk-close tabs (hold ×) | nav | ✓ | 100% | 10/15 | 10/15 | v3.0 | | 2 | medium | Workflow | Hold a tab's × for half a second (or right-click it): Close this tab, Close all tabs, Keep only this tab, or Close all tabs of a color (only colors in use are offered, with counts; the held tab's is ringed). A quick click still closes just that tab. One "unsaved edits" question for the whole batch. Every closing tab goes out in a little burst of flame (off under the system's reduce-motion setting) |
+| Tab colors | nav | ✓ | 100% | 10/13 | 10/15 | v3.0 | | 3 | medium | UX | Each tab has a color dot: click it to pick from ten colors, or double-click to step to the next (keep clicking to keep stepping; up to a second between clicks). Dot clicks recolor without switching tabs. A colored tab gets a tint and underline; colors are remembered |
 | Tabs remembered across sessions | state | ✓ | 100% | 10/10 | 10/10 | v3.0 | | 1 | high | Workflow | Tab text saved to localStorage (2M-char budget); restored tabs show in italics as saved copies until the file is opened again (file handles can't survive a refresh on file://) |
 
 ## Legend: Feature Type Codes
@@ -121,10 +122,10 @@ Complete feature inventory with status, timeline, and metadata.
 
 ## Summary Stats
 
-- **Total Features:** 67, all shipped (✓)
+- **Total Features:** 68, all shipped (✓)
 - **v1.0:** 46 rows (7/24–7/31) — some since reworked in v3.0
 - **v2.0:** 6 (table enhancements + logo modes, 7/31–8/1)
-- **v3.0:** 14 so far (data layer, raw HTML, tabs, editing, find & replace, connect folder, bulk tab close; to 10/15)
+- **v3.0:** 15 so far (data layer, raw HTML, tabs, editing, find & replace, connect folder, bulk tab close, tab colors; to 10/15)
 - **Architecture:** Single-file HTML application (~6,100 lines, ~270 KB)
 - **Dependencies:** Mermaid (vendored, MIT licensed)
 - **Installation:** None required — bookmark the HTML file
@@ -145,7 +146,6 @@ Considered and left out: emoji shortcodes (`:tada:`; a 30–50 KB name table for
 
 ### Bookmarked
 - **Features list link in the app** — a link (⋮ menu, or the welcome screen) to this features list on GitHub, so readers can see what's new and what's coming. Bookmarked 10/13.
-- **Test: dropping several .md files at once** — Scott saw only one file come through, possibly an older build. Test on the current version first: today a multi-file drop is meant to load them all as a *document set* in the sidebar and open the first, with a "Loaded N documents" toast. If that works but feels like "only one", the change is to open each as its own tab; if it doesn't work, it's a bug. Bookmarked 10/13.
 
 ### Reading & navigation
 - Collapsible sections — click a heading to fold it; "collapse all to H2" for skimming.

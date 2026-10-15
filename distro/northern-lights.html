@@ -495,8 +495,8 @@ body.has-tabs #shell { top: 76px; }
 }
 #tabs .tab:hover .tab-x, #tabs .tab.active .tab-x, #tabs .tab-x:focus-visible { opacity: 1; }
 #tabs .tab-x:hover { color: var(--fg); background: var(--border); }
-/* Each tab's own color: a dot (navy by default; double-click it for the
-   picker), and once changed, a tint and underline in that color. */
+/* Each tab's own color: a dot (navy by default; click it for the picker,
+   double-click for the next color), and once changed, a tint and underline in that color. */
 #tabs .tab { --tc: #24407a; box-shadow: inset 0 3px var(--tc); }
 #tabs .tab.active { box-shadow: inset 0 3px var(--tc), inset 0 -2px var(--accent); }
 #tabs .tab-dot {
@@ -3298,6 +3298,46 @@ async function openLibraryDoc(i) {
   }
 }
 
+/**
+ * Several files opened at once (dropped, or picked together): each gets its own
+ * tab and the first is shown. Only that one is rendered -- the rest go in as
+ * background tabs straight from their text, the same as a tab switched away
+ * from, and render when first clicked. Past TAB_MAX the rest wait in the
+ * sidebar's document list rather than pushing out the ones just opened.
+ */
+async function openSetAsTabs() {
+  const n = Math.min(state.library.length, TAB_MAX);
+  // In after the current tab, leaving a slot at `start` for the first
+  // document's own tab, which render() creates below.
+  const start = state.tabIndex >= 0 ? state.tabIndex + 1 : state.tabs.length;
+  let at = start;
+  const now = Date.now();
+  for (let i = 1; i < n; i++) {
+    const d = state.library[i];
+    try {
+      const file = d.file || await d.handle.getFile();
+      const tab = { name: d.name, path: "", dir: d.dir, text: await file.text(), handle: d.handle || null,
+        lastModified: file.lastModified || 0, assets: state.libraryAssets, dirty: false,
+        scroll: 0, restored: false, used: now - i };
+      tab.key = docKey(tab);
+      if (!state.tabs.some((t) => t.key === tab.key)) state.tabs.splice(at++, 0, tab);
+    } catch (err) {
+      toast("Could not read " + d.name + ": " + err.message, true);
+    }
+  }
+  await openLibraryDoc(0);
+  const first = state.tabs[state.tabIndex];
+  if (first && state.tabIndex !== start && start < state.tabs.length) {
+    state.tabs.splice(state.tabIndex, 1);
+    state.tabs.splice(start, 0, first);
+    state.tabIndex = start;
+    renderTabs();
+    persist();
+  }
+  const more = state.library.length - n;
+  toast("Opened " + n + " documents as tabs" + (more > 0 ? " — " + more + " more in the sidebar list" : ""));
+}
+
 async function loadDirectory(dirHandle) {
   // Chromium asks a second time, after the folder is chosen, before a page may
   // read it. Dismissing that prompt rejects exactly like pressing Cancel, so
@@ -3369,8 +3409,7 @@ async function loadFiles(fileList, handlePromises) {
       state.assets = new Map(imgs.map((f) => [f.name.toLowerCase(), URL.createObjectURL(f)]));
     }
     setLibrary(mds.map((f) => ({ name: f.name, dir: "", file: f, handle: byName.get(f.name) || null })));
-    await openLibraryDoc(0);
-    toast("Loaded " + mds.length + " documents");
+    await openSetAsTabs();
     return;
   }
 
@@ -3588,7 +3627,7 @@ function renderTabs() {
     return '<div class="tab' + (on ? " active" : "") + (t.restored ? " restored" : "") + (t.dirty ? " dirty" : "") +
       (color ? " colored" : "") + '" data-i="' + i + '" role="tab" tabindex="0" aria-selected="' + on +
       '" title="' + esc(tip) + '"' + (color ? ' style="--tc:' + color + '"' : "") + ">" +
-      '<span class="tab-dot" title="Double-click to change color"></span>' +
+      '<span class="tab-dot" title="Click for colors · double-click for the next one"></span>' +
       '<span class="tab-name">' + esc(label) + "</span>" +
       '<button type="button" class="tab-x" data-x="' + i + '" title="Close (middle-click) — hold for more" aria-label="Close ' +
       esc(label) + '">&times;</button></div>';
@@ -3689,7 +3728,8 @@ async function openViaPicker(startWatching) {
 
   try {
     const opts = {
-      multiple: false,
+      // Open takes several at once (each becomes a tab); re-linking wants one.
+      multiple: !startWatching,
       // Chrome remembers the last directory per id, so re-picking after a page
       // refresh lands in the folder you were already working in.
       id: "mdviewer",
@@ -3701,9 +3741,15 @@ async function openViaPicker(startWatching) {
     // session as an anchor even after a pathless document replaces it.
     const anchor = state.handle || state.dirAnchor;
     if (anchor) opts.startIn = anchor;
-    const [handle] = await window.showOpenFilePicker(opts);
+    const picked = await window.showOpenFilePicker(opts);
     commitInline();
     releaseAssets();
+    if (picked.length > 1) {
+      setLibrary(picked.map((h) => ({ name: h.name, dir: "", file: null, handle: h })));
+      await openSetAsTabs();
+      return;
+    }
+    const [handle] = picked;
     // Open brings in a different file, so the current one's path and folder
     // would mislabel it -- and, as a tab key, overwrite the current tab.
     // Enable-live-reload re-picks THIS file, so it keeps both.
@@ -6016,7 +6062,7 @@ $("#btn-copy-path").addEventListener("click", () => {
     () => toast("Clipboard blocked — press Ctrl+C to copy the selection", true));
 });
 
-els.fileInput.addEventListener("change", (e) => { loadFiles(e.target.files); e.target.value = ""; });
+els.fileInput.addEventListener("change", (e) => { queueLoad(Array.from(e.target.files)); e.target.value = ""; });
 
 // --- document list ---
 // Delegated: the list is rebuilt on every switch, so per-link handlers would
@@ -6036,13 +6082,12 @@ els.docsList.addEventListener("keydown", (e) => {
 });
 
 // --- tabs ---
-// Clicks on a tab's dot, counted while they keep coming fast: two open its
-// color picker; a third steps to the next color, and every quick click after
-// that steps again, looping round. The picker waits out the gap so a third
-// click doesn't flash it open first. Once cycling, the gap stretches to a full
-// second -- time to look at the new color before deciding on one more click.
-// Counted by hand, not dblclick: the first click can switch tabs and rebuild
-// the row, so later clicks land on a fresh dot.
+// Clicks on a tab's dot, counted while they keep coming fast: one opens its
+// color picker; a double click steps to the next color instead, and every
+// quick click after that steps again, looping round. The picker waits out the
+// gap so a double click doesn't flash it open first. Once cycling, the gap
+// stretches to a full second -- time to look at the new color before deciding
+// on one more click. Dot clicks only recolor; they don't switch tabs.
 const DOT_GAP = 400, CYCLE_GAP = 1000;
 let dotClick = null;
 els.tabs.addEventListener("click", (e) => {
@@ -6051,31 +6096,29 @@ els.tabs.addEventListener("click", (e) => {
   const t = e.target.closest(".tab");
   if (!t) return;
   const i = Number(t.dataset.i);
-  const dot = e.target.closest(".tab-dot");
-  if (dot) {
+  if (e.target.closest(".tab-dot")) {
+    e.stopPropagation();
     const tab = state.tabs[i];
     const d = dotClick && dotClick.tab === tab &&
-      Date.now() - dotClick.at < (dotClick.n > 2 ? CYCLE_GAP : DOT_GAP)
+      Date.now() - dotClick.at < (dotClick.n > 1 ? CYCLE_GAP : DOT_GAP)
       ? dotClick : (dotClick = { tab, n: 0 });
     clearTimeout(d.timer);
     d.n++;
     d.at = Date.now();
-    if (d.n === 2) {
+    if (d.n === 1) {
       d.timer = setTimeout(() => {
+        // Found afresh: the row may have been rebuilt since the click.
         const fresh = els.tabs.querySelector('.tab[data-i="' + state.tabs.indexOf(tab) + '"] .tab-dot');
         if (fresh) openTabColors(tab, fresh);
       }, DOT_GAP);
       return;
     }
-    if (d.n > 2) {
-      e.stopPropagation();
-      closeTabColors();
-      const next = (TAB_COLORS.indexOf(tab.color || TAB_COLORS[0]) + 1) % TAB_COLORS.length;
-      tab.color = next ? TAB_COLORS[next] : "";
-      renderTabs();
-      persist();
-      return;
-    }
+    closeTabColors();
+    const next = (TAB_COLORS.indexOf(tabColorOf(tab)) + 1) % TAB_COLORS.length;
+    tab.color = next ? TAB_COLORS[next] : "";
+    renderTabs();
+    persist();
+    return;
   }
   activateTab(i);
 });
@@ -6300,8 +6343,14 @@ window.addEventListener("drop", (e) => {
       .map((it) => { try { return it.getAsFileSystemHandle().catch(() => null); }
                      catch (err) { return Promise.resolve(null); } });
   }
-  loadFiles(dt.files, handlePromises);
+  queueLoad(Array.from(dt.files), handlePromises);
 });
+// One load at a time: a second drop landing while a set is still opening would
+// otherwise swap the document list out from under it.
+let loadQueue = Promise.resolve();
+function queueLoad(files, handlePromises) {
+  loadQueue = loadQueue.then(() => loadFiles(files, handlePromises)).catch(() => { /* reported inside */ });
+}
 
 // --- paste ---
 window.addEventListener("paste", (e) => {
