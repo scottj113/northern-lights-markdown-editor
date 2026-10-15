@@ -487,6 +487,56 @@ If any of the following execute or appear, the sanitizer has a hole.
 "Neutered link text stays" are visible. No red page, no frame, no form, no
 circle, no redirect, page title unchanged, no alerts.*
 
+## 21. Read aloud
+
+Scroll so this heading is near the top, then press **R** (or 🔊 on the reading
+dock). Leave **Aa → Read aloud** at its defaults: Skip tables, Skip code blocks
+and Skip diagrams all ticked.
+
+This first paragraph should be read in full, and wear a soft highlight while
+it is. The next three things are a table, a code block and a diagram.
+
+| Planet | Moons |
+|---|---|
+| Mars | 2 |
+| Jupiter | 95 |
+
+```js
+console.log("this should not be read");
+```
+
+```mermaid
+flowchart LR
+  A[Start] --> B[Finish]
+```
+
+- A list item, read as its own line.
+- A second item, with <b>bold HTML</b> read as plain words.
+
+> A quote, read like a paragraph.
+
+> [!NOTE]
+> An alert, read with its title.
+
+<details><summary>Collapsed section</summary>
+
+Hidden text inside a closed section, which should not be read.
+
+</details>
+
+The last paragraph. When it finishes you should hear nothing more, and see
+"Finished reading".
+
+*Expect: the paragraphs, list, quote and alert are read in order; for the
+table, the code and the diagram you hear "There's a table here, skipping it.",
+"There's some code here, skipping it." and "There's a diagram here, skipping
+it." instead of their contents; the collapsed section is silent. Untick the
+three boxes and press R again from the top of this section: the table is read
+row by row ("Planet, Moons. Mars, 2. Jupiter, 95."), the code line by line,
+and the diagram by its labels. Press R mid-sentence to pause, R again to carry
+on from the start of that paragraph; click another paragraph to jump there;
+Esc stops.*
+
 ---
 
 **Done.** If everything above matched its Expect line, raw HTML is in good shape.

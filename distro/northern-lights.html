@@ -776,6 +776,16 @@ body.source-view.source-editing:not(.blank) #raw-edit {
 .bug .leg { fill: none; stroke: var(--bug-ink); stroke-width: 1.1; stroke-linecap: round; }
 .bug .shell { fill: var(--bug-shell); stroke: var(--bug-ink); stroke-width: .9; }
 .bug .seam { stroke: var(--bug-ink); stroke-width: .9; }
+/* Read aloud: the block being spoken wears a soft accent wash. */
+@media screen {
+  #doc .read-now { background: var(--accent-soft); border-radius: 4px; box-shadow: 0 0 0 5px var(--accent-soft); transition: background .2s; }
+}
+#read-voice {
+  width: 100%; margin-bottom: 8px; padding: 5px 7px; border: 1px solid var(--border-strong); border-radius: 6px;
+  background: var(--bg-raised); color: var(--fg); font: 12.5px system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+#read-prefs[hidden] { display: none; }
+#read-prefs .pop-head { margin-top: 13px; }   /* first in its wrapper, but not in the panel */
 /* ---------- reading dock + zen mode ---------- */
 #dock {
   position: fixed; right: 18px; bottom: 18px; z-index: 40;
@@ -1608,6 +1618,21 @@ body.has-tabs #toast { top: 92px; }   /* clear of the tab row, same gap as witho
       </div>
       <label class="pop-check"><input type="checkbox" id="chk-bold"> Bold all text <kbd>B</kbd></label>
       <label class="pop-check"><input type="checkbox" id="chk-caps"> ALL-CAPS HEADINGS <kbd>H</kbd></label>
+
+      <div id="read-prefs">
+        <p class="pop-head">Read aloud <kbd>R</kbd></p>
+        <select id="read-voice" aria-label="Voice"></select>
+        <div class="seg" id="seg-rate" role="group" aria-label="Speed">
+          <button type="button" data-v="0.8">0.8&times;</button>
+          <button type="button" data-v="1">1&times;</button>
+          <button type="button" data-v="1.25">1.25&times;</button>
+          <button type="button" data-v="1.5">1.5&times;</button>
+          <button type="button" data-v="2">2&times;</button>
+        </div>
+        <label class="pop-check"><input type="checkbox" id="chk-skip-tables"> Skip tables</label>
+        <label class="pop-check"><input type="checkbox" id="chk-skip-code"> Skip code blocks</label>
+        <label class="pop-check"><input type="checkbox" id="chk-skip-diagrams"> Skip diagrams</label>
+      </div>
     </div>
   </div>
 
@@ -1677,6 +1702,9 @@ body.has-tabs #toast { top: 92px; }   /* clear of the tab row, same gap as witho
   <i class="dock-sep"></i>
   <button type="button" id="dock-lanes-in" title="Wider bumper lanes — narrower text (.)" aria-label="Wider bumper lanes"><svg viewBox="0 0 16 16" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 3v10M14 3v10M4 8h3M5.5 6.5 7 8 5.5 9.5M12 8H9M10.5 6.5 9 8l1.5 1.5"/></svg></button>
   <button type="button" id="dock-lanes-out" title="Narrower bumper lanes — wider text (,)" aria-label="Narrower bumper lanes"><svg viewBox="0 0 16 16" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 3v10M14 3v10M7 8H4M5.5 6.5 4 8l1.5 1.5M9 8h3M10.5 6.5 12 8l-1.5 1.5"/></svg></button>
+  <i class="dock-sep"></i>
+  <button type="button" id="dock-read" title="Read aloud (R)" aria-label="Read aloud"></button>
+  <button type="button" id="dock-read-stop" title="Stop reading (Esc)" aria-label="Stop reading" hidden><svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><rect x="3" y="3" width="10" height="10" rx="1.5" fill="currentColor"/></svg></button>
   <i class="dock-sep"></i>
   <button type="button" id="dock-theme" title="Dark mode (D)">&#9790;</button>
   <button type="button" id="dock-zen" title="Zen mode — hide the menus, keep the tabs (Z)" aria-pressed="false" aria-label="Zen mode"><svg viewBox="0 0 16 16" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4"/></svg></button>
@@ -2835,6 +2863,7 @@ function updatePathPanel() {
 }
 
 function render() {
+  if (state.reading) stopReading();   // the page it was reading is being replaced
   if (!state.text) {
     document.body.classList.add("blank");
     els.name.textContent = "No document";
@@ -4625,6 +4654,7 @@ state.sourceView = false;
 
 function setSourceView(on) {
   on = !!on;
+  if (state.reading) stopReading();
   // Leaving with unsaved changes: Save, Discard or Keep editing -- never silently.
   if (!on && srcEd.on) {
     if (srcDirty()) { askLeaveSource(); return; }
@@ -5946,6 +5976,7 @@ function exportHtml() {
   }
   for (const n of body.querySelectorAll("[data-src]")) n.removeAttribute("data-src");
   for (const m of body.querySelectorAll("mark.find-hit")) m.replaceWith(m.textContent);
+  for (const n of body.querySelectorAll(".read-now")) n.classList.remove("read-now");
   // safeUrl, like every other URL: a document can author its own data-rel.
   for (const img of body.querySelectorAll("img[data-rel]")) { img.setAttribute("src", safeUrl(img.dataset.rel)); img.removeAttribute("data-rel"); }
 
@@ -6147,11 +6178,14 @@ function updateDock() {
   $("#dock-lanes-out").disabled = state.bumpers <= 0;
   $("#dock-smaller").disabled = state.fontSize <= MIN_FONT;
   $("#dock-bigger").disabled = state.fontSize >= MAX_FONT;
+  paintReadButton();
 }
 $("#dock").addEventListener("click", (e) => {
   const b = e.target.closest("button");
   if (!b) return;
-  if (b.id === "dock-smaller") nudgeFont(-1);
+  if (b.id === "dock-read") toggleReading();
+  else if (b.id === "dock-read-stop") stopReading(true);
+  else if (b.id === "dock-smaller") nudgeFont(-1);
   else if (b.id === "dock-bigger") nudgeFont(1);
   else if (b.id === "dock-lanes-in") nudgeBumpers(1);
   else if (b.id === "dock-lanes-out") nudgeBumpers(-1);
@@ -6162,6 +6196,282 @@ $("#dock").addEventListener("click", (e) => {
   else if (b.id === "dock-zen") cycleZen();
   updateDock();
 });
+
+/* ------------------------------------------------------------- read aloud --
+   🔊 on the dock (or R) reads the page aloud with the browser's own voices,
+   starting from where you are; again pauses, again picks up at the start of
+   the same paragraph. ⏹ or Esc stops. Click a paragraph while it reads to
+   jump there. The block being read is washed in the accent and kept in view.
+
+   Tables, code blocks and diagrams sound like noise read out, so by default
+   they're skipped with a word to say so (Aa → Read aloud, three ticks).
+   Front matter is never read. Voice, speed and the ticks are remembered.
+
+   Pausing is done by stopping and restarting the paragraph rather than
+   speechSynthesis.pause(), which some voices don't resume from.
+   -------------------------------------------------------------------------- */
+
+const canSpeak = "speechSynthesis" in window && typeof SpeechSynthesisUtterance === "function";
+const READ_SEL = "h1,h2,h3,h4,h5,h6,p,li,dt,dd,summary,blockquote,.alert,.code-wrap,pre,.md-table-wrapper,table,.mermaid-block,.frontmatter";
+const READ_SAID = { table: "There's a table here, skipping it.", code: "There's some code here, skipping it.",
+  diagram: "There's a diagram here, skipping it." };
+const reader = { items: [], i: 0, gen: 0, el: null, voices: [] };
+state.reading = false;
+state.readPaused = false;
+
+function readPrefs() {
+  let skip = null;
+  try { skip = JSON.parse(localStorage.getItem("mdv:readSkip") || "null"); } catch (_) { /* default */ }
+  return {
+    rate: Number(localStorage.getItem("mdv:readRate")) || 1,
+    voice: localStorage.getItem("mdv:readVoice") || "",
+    skip: Object.assign({ table: true, code: true, diagram: true }, skip || {}),
+  };
+}
+const saveSkip = (skip) => { try { localStorage.setItem("mdv:readSkip", JSON.stringify(skip)); } catch (_) { /* quota */ } };
+
+const readKind = (el) => el.matches(".md-table-wrapper, table") ? "table" :
+  el.matches(".code-wrap, pre") ? "code" : el.matches(".mermaid-block") ? "diagram" : "text";
+
+/** What to say for a block: its words, minus anything being skipped inside it. */
+function readText(el, skip) {
+  const kind = readKind(el);
+  if (kind !== "text") {
+    if (skip[kind]) return READ_SAID[kind];
+    if (kind === "table") {
+      // Row by row. Only the table on show (Interactive Mode keeps another in
+      // the wrapper), and only the cells' words, not their buttons.
+      const table = Array.from(el.matches("table") ? [el] : el.querySelectorAll("table"))
+        .find((t) => t.getClientRects().length);
+      if (!table) return "";
+      const cellText = (c) => { const x = c.cloneNode(true); for (const b of x.querySelectorAll("button")) b.remove(); return x.textContent.trim(); };
+      return Array.from(table.rows, (tr) =>
+        Array.from(tr.cells, cellText).filter(Boolean).join(", ")).filter(Boolean).join(". ") + ".";
+    }
+    if (kind === "diagram") {
+      // Its labels, not the SVG's styling or the viewer's buttons.
+      if (el.querySelector(".mermaid-error")) return "There's a diagram here that couldn't be drawn.";
+      const svg = el.querySelector("svg");
+      const labels = svg ? [...new Set(Array.from(svg.querySelectorAll(".nodeLabel, .edgeLabel, text"),
+        (t) => t.textContent.replace(/\s+/g, " ").trim()).filter(Boolean))] : [];
+      return labels.length ? "Diagram: " + labels.join(", ") + "." : "There's a diagram here.";
+    }
+    return (el.querySelector("pre") || el).textContent.trim();
+  }
+  const c = el.cloneNode(true);
+  const drop = [".anchor", "button", ".code-copy", ".code-lang", "sup.fnref", ".table-controls", "svg"];
+  for (const k of ["table", "code", "diagram"]) {
+    if (skip[k]) drop.push(k === "table" ? ".md-table-wrapper, table" : k === "code" ? ".code-wrap, pre" : ".mermaid-block");
+  }
+  for (const n of c.querySelectorAll(drop.join(","))) n.remove();
+  // Blocks inside run together in textContent ("NoteAn alert"): space them,
+  // and let an alert's title end like a sentence.
+  for (const n of c.querySelectorAll(".alert-title")) n.append(". ");
+  for (const n of c.querySelectorAll("p, li, div, dt, dd, h1, h2, h3, h4, h5, h6, br, td, th, summary")) n.after(" ");
+  return c.textContent.replace(/↩︎?/g, "").replace(/\s+/g, " ").replace(/\s+([.,;:])/g, "$1").trim();
+}
+
+/** The page as a list of things to say, in order. */
+function buildReadItems() {
+  const skip = readPrefs().skip;
+  const all = Array.from(els.doc.querySelectorAll(READ_SEL));
+  const set = new Set(all);
+  const items = [];
+  for (const el of all) {
+    // The outermost match speaks for everything inside it.
+    let p = el.parentElement, inner = false;
+    while (p && p !== els.doc) { if (set.has(p)) { inner = true; break; } p = p.parentElement; }
+    // Hidden things stay quiet: a closed <details> keeps its contents (but
+    // not its summary) to itself.
+    const shut = el.closest("details:not([open])");
+    if (inner || el.matches(".frontmatter") || !el.getClientRects().length ||
+        (shut && !el.closest("summary"))) continue;
+    const text = readText(el, skip);
+    if (text) items.push({ el, text });
+  }
+  return items;
+}
+
+/** Long text in pieces of a few sentences: some voices stop partway through a
+ *  long one. Sentences are kept together up to the limit, so "2. Line breaks"
+ *  stays one phrase rather than two. */
+function readChunks(text) {
+  const MAX = 220, out = [];
+  let cur = "";
+  const flush = () => { if (cur.trim()) out.push(cur.trim()); cur = ""; };
+  for (const s of text.split(/(?<=[.!?:;])\s+/)) {
+    if (cur && cur.length + 1 + s.length > MAX) flush();
+    cur = cur ? cur + " " + s : s;
+    while (cur.length > MAX) {   // one sentence longer than the limit: break at a comma or space
+      const cut = Math.max(cur.lastIndexOf(", ", MAX), cur.lastIndexOf(" ", MAX));
+      out.push(cur.slice(0, cut > 40 ? cut + 1 : MAX).trim());
+      cur = cur.slice(cut > 40 ? cut + 1 : MAX);
+    }
+  }
+  flush();
+  return out;
+}
+
+function pickVoice() {
+  const want = readPrefs().voice, vs = reader.voices;
+  return vs.find((v) => v.voiceURI === want) || bestVoice() || null;
+}
+function bestVoice() {
+  const lang = (navigator.language || "en").toLowerCase(), base = lang.split("-")[0];
+  const vs = reader.voices.filter((v) => v.lang.toLowerCase().startsWith(base));
+  return vs.find((v) => /natural/i.test(v.name) && v.lang.toLowerCase() === lang) ||
+    vs.find((v) => /natural/i.test(v.name)) || vs.find((v) => v.lang.toLowerCase() === lang) ||
+    vs.find((v) => v.default) || vs[0];
+}
+
+function markReading(el) {
+  if (reader.el) reader.el.classList.remove("read-now");
+  reader.el = el;
+  if (!el) return;
+  el.classList.add("read-now");
+  const r = el.getBoundingClientRect(), box = els.scroller.getBoundingClientRect();
+  if (r.top < box.top + 40 || r.bottom > box.bottom - 60) el.scrollIntoView({ block: "center", behavior: "smooth" });
+}
+
+function speakFrom(i) {
+  const gen = ++reader.gen;
+  speechSynthesis.cancel();
+  reader.i = i;
+  const item = reader.items[i];
+  if (!item) { stopReading(); toast("Finished reading"); return; }
+  markReading(item.el);
+  const prefs = readPrefs(), voice = pickVoice(), chunks = readChunks(item.text);
+  let n = 0;
+  const next = () => {
+    if (gen !== reader.gen) return;   // stopped, paused or jumped since
+    if (n >= chunks.length) { speakFrom(i + 1); return; }
+    const u = new SpeechSynthesisUtterance(chunks[n++]);
+    if (voice) { u.voice = voice; u.lang = voice.lang; }
+    u.rate = prefs.rate;
+    u.onend = next;
+    u.onerror = (ev) => { if (ev.error !== "interrupted" && ev.error !== "canceled") next(); };
+    speechSynthesis.speak(u);
+  };
+  next();
+}
+
+/** Where to begin: the first block at or below the top of the screen. */
+function readStartIndex() {
+  const top = els.scroller.getBoundingClientRect().top + 8;
+  const i = reader.items.findIndex((it) => it.el.getBoundingClientRect().bottom > top);
+  return i < 0 ? 0 : i;
+}
+
+function startReading(at) {
+  if (!canSpeak || !state.text || state.sourceView) return;
+  reader.items = buildReadItems();
+  if (!reader.items.length) { toast("Nothing here to read"); return; }
+  state.reading = true;
+  state.readPaused = false;
+  paintReadButton();
+  speakFrom(at === undefined ? readStartIndex() : at);
+}
+
+function toggleReading() {
+  if (!state.reading) { startReading(); return; }
+  if (state.readPaused) {
+    state.readPaused = false;
+    paintReadButton();
+    speakFrom(reader.i);   // the start of the paragraph it paused in
+  } else {
+    reader.gen++;
+    speechSynthesis.cancel();
+    state.readPaused = true;
+    paintReadButton();
+  }
+}
+
+function stopReading(say) {
+  reader.gen++;
+  if (canSpeak) speechSynthesis.cancel();
+  markReading(null);
+  state.reading = state.readPaused = false;
+  paintReadButton();
+  if (say) toast("Stopped reading");
+}
+
+/** Prefs changed mid-read: pick up again from the same block with them. */
+function rereadHere() {
+  if (!state.reading) return;
+  const el = reader.el;
+  reader.items = buildReadItems();
+  const i = Math.max(0, reader.items.findIndex((it) => it.el === el));
+  if (state.readPaused) reader.i = i; else speakFrom(i);
+}
+
+function paintReadButton() {
+  const b = $("#dock-read");
+  b.hidden = !("speechSynthesis" in window);
+  const playing = state.reading && !state.readPaused;
+  b.innerHTML = playing
+    ? '<svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><rect x="3.5" y="3" width="3" height="10" rx="1" fill="currentColor"/><rect x="9.5" y="3" width="3" height="10" rx="1" fill="currentColor"/></svg>'
+    : '<svg viewBox="0 0 16 16" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 6h2.5l3.5-3v10L5 10H2.5z" fill="currentColor"/><path d="M11 5.5a3.5 3.5 0 0 1 0 5M12.8 3.6a6 6 0 0 1 0 8.8"/></svg>';
+  b.title = playing ? "Pause reading (R)" : state.readPaused ? "Carry on reading (R)" : "Read aloud (R)";
+  b.setAttribute("aria-label", b.title.replace(/ \(R\)$/, ""));
+  b.setAttribute("aria-pressed", String(state.reading));
+  $("#dock-read-stop").hidden = !state.reading;
+}
+
+// While reading, a click on a paragraph moves the reading there.
+els.doc.addEventListener("click", (e) => {
+  if (!state.reading || state.editMode || e.target.closest("a, button, input, summary")) return;
+  const i = reader.items.findIndex((it) => it.el.contains(e.target));
+  if (i < 0) return;
+  state.readPaused = false;
+  paintReadButton();
+  speakFrom(i);
+});
+
+// --- read-aloud settings (Aa panel) ---
+function fillVoices() {
+  reader.voices = canSpeak ? speechSynthesis.getVoices() : [];
+  const sel = $("#read-voice"), cur = pickVoice();
+  sel.innerHTML = reader.voices.map((v) =>
+    '<option value="' + esc(v.voiceURI) + '"' + (cur && v.voiceURI === cur.voiceURI ? " selected" : "") + ">" +
+    esc(v.name.replace(/^Microsoft /, "") + " (" + v.lang + ")") + "</option>").join("");
+  sel.disabled = !reader.voices.length;
+  if (!reader.voices.length) sel.innerHTML = "<option>No voices available</option>";
+}
+function paintReadPrefs() {
+  const p = readPrefs();
+  for (const b of $("#seg-rate").children) b.setAttribute("aria-pressed", String(Number(b.dataset.v) === p.rate));
+  $("#chk-skip-tables").checked = p.skip.table;
+  $("#chk-skip-code").checked = p.skip.code;
+  $("#chk-skip-diagrams").checked = p.skip.diagram;
+}
+$("#read-prefs").hidden = !canSpeak;
+if (canSpeak) {
+  fillVoices();
+  speechSynthesis.addEventListener("voiceschanged", fillVoices);
+}
+paintReadPrefs();
+paintReadButton();
+$("#read-voice").addEventListener("change", (e) => {
+  try { localStorage.setItem("mdv:readVoice", e.target.value); } catch (_) { /* quota */ }
+  rereadHere();
+});
+$("#seg-rate").addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-v]");
+  if (!b) return;
+  try { localStorage.setItem("mdv:readRate", b.dataset.v); } catch (_) { /* quota */ }
+  paintReadPrefs();
+  rereadHere();
+});
+for (const [id, key] of [["#chk-skip-tables", "table"], ["#chk-skip-code", "code"], ["#chk-skip-diagrams", "diagram"]]) {
+  $(id).addEventListener("change", (e) => {
+    const skip = readPrefs().skip;
+    skip[key] = e.target.checked;
+    saveSkip(skip);
+    rereadHere();
+  });
+}
+// Leaving the page mid-sentence shouldn't leave the voice talking.
+window.addEventListener("pagehide", () => { if (state.reading) stopReading(); });
 
 /* Moving the dock. Its spot is saved as a fraction of the room it has to
    move in (0-1 across, 0-1 down), so it stays put relative to the window and
@@ -6658,6 +6968,7 @@ window.addEventListener("keydown", (e) => {
     return;
   }
   if (e.key === "Escape" && !$("#src-leave").hidden) { hideLeaveSource(); srcTa.focus(); return; }
+  if (e.key === "Escape" && state.reading) { stopReading(true); return; }
   if (mod && e.key.toLowerCase() === "p" && state.text) {
     e.preventDefault();
     window.print();
@@ -6695,6 +7006,9 @@ window.addEventListener("keydown", (e) => {
     localStorage.setItem("mdv:bold", state.bold ? "1" : "0");
     applyDocStyle();
     toast(state.bold ? "Bold text on" : "Bold text off");
+  } else if (e.key.toLowerCase() === "r" && state.text && canSpeak) {
+    e.preventDefault();
+    toggleReading();
   } else if (e.key.toLowerCase() === "z" && state.text) {
     e.preventDefault();
     cycleZen();

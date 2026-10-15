@@ -1,7 +1,7 @@
 # Northern Lights MD Viewer
 
 *The most beautiful Markdown viewer — and an editor that keeps your files exactly as you
-wrote them. One HTML file, ~270 KB, nothing to install.*
+wrote them. One HTML file, about 4 MB with diagrams built in, nothing to install.*
 
 **Every other Markdown viewer is built to render the file. This one is built so you
 can read it.**
@@ -28,6 +28,10 @@ alone. More words, same layout, nothing rearranged.
 contrast-validated rather than eyeballed: body text holds 12:1 or better in all
 twelve. **Bold all** thickens the body text for glare and low-contrast screens. Dark
 mode dims images, so a white-background screenshot stops being a flashbulb.
+
+**Or listen.** Press **R** and the page is read aloud from where you are, the paragraph
+being read softly highlighted. Tables, code and diagrams, which only sound like noise
+spoken, are skipped with a word to say so, unless you untick that.
 
 **It remembers.** Size, palette, layout and your open documents persist between
 sessions, and the page opens already themed instead of flashing white and correcting
@@ -280,6 +284,12 @@ italics), and one **Connect folder** relinks them all. A browser restriction, no
   rather than a magnified interface. Diagrams and code blocks scale with the text.
 - **Bold all** (`B`) and **ALL-CAPS headings** (`H`) — display only; your file keeps
   its own casing.
+- **Read aloud** (`R`, or 🔊 on the reading dock) — reads from where you are with your
+  browser's own voices, highlighting each paragraph as it goes. `R` pauses and picks up
+  again, click a paragraph to jump there, `Esc` stops. **Aa → Read aloud** sets the voice
+  and speed, and three ticks (on by default) skip tables, code blocks and diagrams with a
+  quick "there's a table here, skipping it". Edge's *Natural* voices sound best but need
+  an internet connection; the standard ones work offline.
 - **Twelve palettes** — pick a **mode** (Light / Dark), a **colour family**, and a
   **depth**. Light offers White and Beige (built on warm ivory neutrals);
   Dark offers Blue and Slate. Depth steps the background darker within the chosen
@@ -313,6 +323,7 @@ italics), and one **Connect folder** relinks them all. A browser restriction, no
 | `B` | Toggle bold-all |
 | `H` | Toggle ALL-CAPS headings |
 | `D` | Toggle light / dark mode |
+| `R` | Read aloud / pause (`Esc` stops) |
 | `[` / `]` | Previous / next tab |
 | `,` / `.` | Narrower / wider bumper lanes |
 | `Z` | Zen mode: menus hidden, tabs kept → tabs hidden too → back to normal (`Esc` leaves at once) |

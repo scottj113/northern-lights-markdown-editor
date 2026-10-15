@@ -35,6 +35,7 @@ Complete feature inventory with status, timeline, and metadata.
 | Theme persistence | state | ✓ | 100% | 7/24 | 7/25 | v1.0 | v1.0 | 1 | critical | UX | Remember palette & text size across sessions. Since 10/15 the saved palette really is restored on load (it was silently dropped), and every open copy of the viewer stays in step: change the look in one tab and the others follow; Back/Forward re-reads it |
 | Match system preference | appearance | ✓ | 100% | 7/26 | 7/27 | v1.0 | v1.0 | 2 | medium | UX | Auto-follow OS light/dark mode |
 | Bumper lanes (margin control) | layout | ✓ | 100% | 7/26 | 7/27 | v1.0 | v1.0 | 2 | high | Comfort | 5 margin widths (0%, 10%, 20%, 30%, 40%) for reading comfort |
+| Read aloud | ui | ✓ | 100% | 10/15 | 10/15 | v3.0 | | 2 | high | Accessibility | R or 🔊 on the dock reads from where you are with the browser's voices (no download); the block being read is highlighted and kept in view. R pauses / carries on from the start of that paragraph, click a paragraph to jump, Esc or ⏹ stops. Aa → Read aloud: voice, speed (0.8–2×), Skip tables / code blocks / diagrams (ticked by default; each says "there's a table here, skipping it"). Unticked: tables row by row, code as written, diagrams by their labels. Closed sections and front matter stay silent |
 | **EDITING** | | | | | | | | | |
 | Section editing | edit | ✓ | 100% | 7/27 | 10/10 | v1.0 | v3.0 | 1 | critical | Workflow | Contents pencil turns on edit mode (Edit button lit), scrolls to the section and frames it in red; the frame follows you into whichever section you click or arrow into. Click a block for its Markdown; auto-saves to the file. Esc, the Edit button, or the same pencil again ends it. Replaced the v1 pop-out window editor |
 | Save edits back to file | edit | ✓ | 100% | 7/27 | 10/10 | v1.0 | v3.0 | 1 | critical | Workflow | Every in-place edit saves straight to the file; Ctrl+S forces a save (overwrites a file changed on disk, or Save As when unlinked) |
@@ -123,11 +124,11 @@ Complete feature inventory with status, timeline, and metadata.
 
 ## Summary Stats
 
-- **Total Features:** 69, all shipped (✓)
+- **Total Features:** 70, all shipped (✓)
 - **v1.0:** 46 rows (7/24–7/31) — some since reworked in v3.0
 - **v2.0:** 6 (table enhancements + logo modes, 7/31–8/1)
-- **v3.0:** 16 so far (data layer, raw HTML, tabs, editing, find & replace, connect folder, bulk tab close, tab colors, source editing; to 10/15)
-- **Architecture:** Single-file HTML application (~6,100 lines, ~270 KB)
+- **v3.0:** 17 so far (data layer, raw HTML, tabs, editing, find & replace, connect folder, bulk tab close, tab colors, source editing, read aloud; to 10/15)
+- **Architecture:** Single-file HTML application (~8,100 lines and ~550 KB of app, plus ~3.3 MB of embedded Mermaid: ~3.9 MB in all)
 - **Dependencies:** Mermaid (vendored, MIT licensed)
 - **Installation:** None required — bookmark the HTML file
 
@@ -171,6 +172,6 @@ Considered and left out: emoji shortcodes (`:tada:`; a 30–50 KB name table for
 
 ---
 
-**Last Updated:** 10/13/2026  
+**Last Updated:** 10/15/2026  
 **Maintainer:** Scott  
 **License:** See LICENSE file in distro/
