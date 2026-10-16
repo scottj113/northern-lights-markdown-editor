@@ -254,9 +254,11 @@ italics), and one **Connect folder** relinks them all. A browser restriction, no
   chapters sharing a tab color are grouped. Books live in `northern-lights-books.json`
   in your connected folder (several to a file, easy to edit by hand). Open one and its
   chapters become your tabs; the sidebar's **📖 Book** view lists them, and every
-  chapter ends with previous / next. **Update from tabs** saves a new order. A chapter
-  whose file has moved shows as missing. Chrome and Edge, since it needs the connected
-  folder.
+  chapter ends with previous / next. **☰** on the Book button has **Update from tabs** (saves
+  a new order) and **Close book**. A chapter
+  whose file has moved shows as missing. After a restart, the welcome page's **Open a
+  book…** (or **Continue reading**) asks for the folder once, finds the books file (in a
+  subfolder too) and opens your book. Chrome and Edge, since it needs the connected folder.
 - **Edit in place** — `Ctrl+E`, then click a block to edit its Markdown where it sits.
   Click away (or `Ctrl+Enter`) to apply and save, `Esc` to cancel, `↑`/`↓` at the edges
   to walk into the next block.
