@@ -250,6 +250,13 @@ italics), and one **Connect folder** relinks them all. A browser restriction, no
   Drop or pick several files and each opens as a tab. × or middle-click closes;
   hold the × (or right-click it) to close all tabs, keep only this one, or close every
   tab of a color. Closed tabs go out in a little puff of flame.
+- **Books** — save your open tabs as a book: each tab is a chapter, in tab order, and
+  chapters sharing a tab color are grouped. Books live in `northern-lights-books.json`
+  in your connected folder (several to a file, easy to edit by hand). Open one and its
+  chapters become your tabs; the sidebar's **📖 Book** view lists them, and every
+  chapter ends with previous / next. **Update from tabs** saves a new order. A chapter
+  whose file has moved shows as missing. Chrome and Edge, since it needs the connected
+  folder.
 - **Edit in place** — `Ctrl+E`, then click a block to edit its Markdown where it sits.
   Click away (or `Ctrl+Enter`) to apply and save, `Esc` to cancel, `↑`/`↓` at the edges
   to walk into the next block.
