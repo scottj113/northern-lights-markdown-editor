@@ -469,15 +469,14 @@ button.btn.icon { padding: 5px 7px; }
 /* Toggled by a body class rather than [hidden]: display:flex here would
    override the hidden attribute's display:none. */
 #tabs {
-  position: fixed; inset: 46px 0 auto 0; height: 37px; z-index: 39;
-  /* 7px of headroom above the tabs: where the open tab's halo floats. */
-  display: none; align-items: stretch; gap: 1px; padding: 7px 10px 0;
+  position: fixed; inset: 46px 0 auto 0; height: 30px; z-index: 39;
+  display: none; align-items: stretch; gap: 1px; padding: 0 10px;
   background: var(--bg-raised); border-bottom: 1px solid var(--border);
   overflow-x: auto; overflow-y: hidden; scrollbar-width: none;
 }
 #tabs::-webkit-scrollbar { display: none; }
 body.has-tabs #tabs { display: flex; }
-body.has-tabs #shell { top: 83px; }
+body.has-tabs #shell { top: 76px; }
 #tabs .tab {
   flex: none; display: flex; align-items: center; gap: 3px; max-width: 220px;
   padding: 0 3px 0 10px; color: var(--fg-muted); font-size: 12px;
@@ -508,26 +507,6 @@ body.has-tabs #shell { top: 83px; }
 #tabs .tab.colored { background: color-mix(in srgb, var(--tc) 13%, transparent); }
 #tabs .tab.colored:hover { background: color-mix(in srgb, var(--tc) 22%, transparent); }
 #tabs .tab.colored.active { box-shadow: inset 0 3px var(--tc), inset 0 -2px var(--tc); }
-/* The open tab wears a halo: a thin glowing ring floating just above it, in a
-   warm, pale version of the tab's color, with a faint glow falling onto the
-   tab. It fades on when you switch, then drifts a pixel up and down. */
-#tabs .tab { position: relative; isolation: isolate; }
-#tabs .tab.active::before, #tabs .tab.active::after { content: ""; position: absolute; pointer-events: none; }
-#tabs .tab.active::before {
-  --halo: color-mix(in srgb, var(--tc) 35%, #fff4d0);
-  left: calc(50% - 22px); width: 44px; top: -7px; height: 5px; box-sizing: border-box;
-  border: 1.5px solid var(--halo); border-radius: 50%;
-  box-shadow: 0 0 5px 1px var(--halo), inset 0 0 2px var(--halo);
-  animation: nl-light-on .35s ease-out, nl-halo 3.2s ease-in-out .35s infinite;
-}
-#tabs .tab.active::after {
-  inset: 0; z-index: -1; border-radius: 6px 6px 0 0;
-  background: radial-gradient(ellipse 40% 90% at 50% 0, color-mix(in srgb, var(--tc) 35%, #fff4d0) 0, transparent 75%);
-  opacity: .25; animation: nl-light-on .35s ease-out;
-}
-@keyframes nl-light-on { from { opacity: 0; } }
-@keyframes nl-halo { 50% { transform: translateY(-1px); } }
-@media (prefers-reduced-motion: reduce) { #tabs .tab.active::before, #tabs .tab.active::after { animation: none; } }
 /* The dragged tab rides along under the pointer, see-through, above its
    neighbours; the gap it leaves is where it will land. */
 #tabs .tab.dragging {
@@ -646,43 +625,6 @@ body.no-toc:not(.blank) #toc-open { display: inline-flex; }
 }
 #toc .toc-row:hover .toc-edit, #toc .toc-edit:focus-visible { opacity: 1; pointer-events: auto; }
 #toc .toc-edit:hover { color: var(--accent); background: var(--accent-soft); border-color: var(--border-strong); }
-
-/* ---------- books (see "books" in the script) ---------- */
-#toc-mode-wrap { margin: 0 30px 14px 0; }
-#toc-mode button { padding: 4px 6px; font-size: 11.5px; }
-/* ☰ inside the Book button, while a book is open: the book's menu. */
-#book-menu-btn { margin-left: 7px; padding: 0 4px; border-radius: 4px; font-size: 12px; line-height: 1.3; cursor: pointer; opacity: .85; }
-#book-menu-btn:hover, #book-menu-btn:focus-visible, #book-menu-btn[aria-expanded="true"] { opacity: 1; outline: none; background: rgba(127, 127, 127, .25); }
-#book-menu-btn[hidden] { display: none; }
-#pop-book { min-width: 180px; }
-#book-view .book-title { margin: 0 0 2px; font-size: 14.5px; font-weight: 700; color: var(--fg); overflow-wrap: anywhere; }
-#book-view .book-sub { margin: 0 0 10px; font-size: 11.5px; color: var(--fg-faint); }
-#book-view .book-note { margin: 0 0 10px; font-size: 12.5px; line-height: 1.45; color: var(--fg-muted); padding-right: 10px; }
-#book-view .book-btns { display: flex; flex-wrap: wrap; gap: 5px; margin: 0 0 14px; }
-#book-view .book-btns button {
-  appearance: none; border: 1px solid var(--border-strong); background: var(--bg); color: var(--fg);
-  font: inherit; font-size: 11.5px; padding: 3px 9px; border-radius: 6px; cursor: pointer;
-}
-#book-view .book-btns button:hover:not(:disabled) { background: var(--accent-soft); }
-#book-view .book-btns button:disabled { opacity: .45; cursor: default; }
-#book-view .book-btns .primary { background: var(--accent); border-color: var(--accent); color: var(--bg-raised); font-weight: 600; }
-/* Chapters next to each other in one tab color are one group, under a bar in that color. */
-#book-view .ch-group { --gc: #24407a; margin: 0 0 8px; border-left: 3px solid var(--gc); border-radius: 2px; }
-#book-view .ch-group a { border-left: 0; padding-left: 8px; }
-#book-view a .ch-num { display: inline-block; min-width: 1.6em; color: var(--fg-faint); font-variant-numeric: tabular-nums; }
-#book-view a .doc-dir { display: block; padding-left: 1.6em; font-size: 11px; color: var(--fg-faint); }
-#book-view a.active { background: var(--accent-soft); border-radius: 0 4px 4px 0; }
-#book-view a.missing { color: var(--fg-faint); text-decoration: line-through; }
-#book-view .book-list a { padding-left: 9px; }
-#book-view .book-list a .doc-dir { padding-left: 0; }
-/* Previous / next chapter, under the page. */
-#book-nav { display: flex; justify-content: space-between; gap: 16px; margin: 36px 0 8px; padding-top: 14px; border-top: 1px solid var(--border); }
-#book-nav[hidden], body.source-view #book-nav { display: none; }
-#book-nav a { max-width: 48%; color: var(--accent); text-decoration: none; font-size: .9em; line-height: 1.35; cursor: pointer; }
-#book-nav a:hover { text-decoration: underline; }
-#book-nav a small { display: block; color: var(--fg-faint); font-size: .8em; text-transform: uppercase; letter-spacing: .05em; }
-#book-nav .next { margin-left: auto; text-align: right; }
-@media print { #book-nav { display: none !important; } }
 
 /* ---------- document list (a dropped folder or multi-file drop) ---------- */
 #docs { margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
@@ -864,7 +806,6 @@ body.blank #dock { display: none; }
 }
 #dock button:hover:not(:disabled) { color: var(--accent); background: var(--accent-soft); }
 #dock button:disabled { opacity: .35; cursor: default; }
-#dock button[hidden] { display: none; }   /* ⏹ only while reading aloud */
 #dock button[aria-pressed="true"] { color: var(--accent); background: var(--accent-soft); }
 #dock .dock-sep { width: 1px; height: 18px; background: var(--border); margin: 0 3px; }
 /* Grab here to move the dock anywhere; double-click to send it home. */
@@ -882,7 +823,7 @@ body.zen #bar, body.zen.zen-full #tabs, body.zen #toc, body.zen #toc-handle,
 body.zen #toc-open, body.zen #find-ticks { display: none !important; }
 body.zen #tabs { top: 0; }
 body.zen #shell { top: 0 !important; }
-body.zen.has-tabs:not(.zen-full) #shell { top: 37px !important; }
+body.zen.has-tabs:not(.zen-full) #shell { top: 30px !important; }
 
 /* Long lines wrap inside the page -- and so inside the bumper lanes -- instead
    of running past them. Continuations sit under the text, not the number. */
@@ -935,7 +876,7 @@ body.source-view .toc-edit { display: none !important; }
   border-radius: 8px; box-shadow: var(--shadow);
 }
 #find-bar[hidden] { display: none; }
-body.has-tabs #find-bar { top: 91px; }
+body.has-tabs #find-bar { top: 84px; }
 /* With the Markdown pane open, stay over the document -- on top of the pane
    the bar would hide the very line about to be replaced. */
 body.split:not(.blank) #find-bar { right: calc(var(--split-w, 38%) + 26px); }
@@ -992,14 +933,6 @@ body.source-view #find-toggle { visibility: hidden; }
 #empty ul { text-align: left; margin: 18px 0 0; padding: 0; list-style: none; font-size: 13px; color: var(--fg-muted); }
 #empty li { padding: 5px 0; border-top: 1px solid var(--border); }
 #empty li:first-child { border-top: 0; }
-/* Books on the welcome page: open one, or carry on with the last. */
-#empty-books { margin: 18px 0 0; padding: 14px 0 0; border-top: 1px solid var(--border); }
-#empty-books[hidden] { display: none; }
-#empty-books .eb-head { margin: 0 0 8px; font-size: 11px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--fg-faint); }
-#eb-list { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin-top: 10px; }
-#eb-list:empty { display: none; }
-#empty-books .eb-note { margin: 8px 0 0; font-size: 12.5px; color: var(--fg-muted); }
-#empty-books .eb-note:empty { display: none; }
 kbd {
   font: 11.5px/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   background: var(--code-bg); border: 1px solid var(--border-strong);
@@ -1031,7 +964,7 @@ body.dragging #drop { display: flex; }
   max-width: 70vw;
 }
 #toast.show { opacity: 1; transform: translate(-50%, 0); }
-body.has-tabs #toast { top: 99px; }   /* clear of the tab row, same gap as without it */
+body.has-tabs #toast { top: 92px; }   /* clear of the tab row, same gap as without it */
 #toast.err { border-color: #d9534f; color: #d9534f; }
 
 #vscode-welcome {
@@ -1781,25 +1714,11 @@ body.has-tabs #toast { top: 99px; }   /* clear of the tab row, same gap as witho
   <nav id="toc">
     <!-- Closes the sidebar from its own corner; #toc-open brings it back. -->
     <button type="button" class="toc-toggle" id="toc-close" title="Hide sidebar" aria-label="Hide sidebar"><svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1.5" y="2.5" width="13" height="11" rx="2"/><path d="M6 2.5v11"/><path d="M11 6 9 8l2 2"/></svg></button>
-    <div class="pop-wrap" id="toc-mode-wrap">
-      <div class="seg" id="toc-mode" role="group" aria-label="Sidebar shows">
-        <button type="button" data-v="page" aria-pressed="true">Contents</button>
-        <button type="button" data-v="book" aria-pressed="false">&#128214; Book<span id="book-menu-btn" role="button" tabindex="0"
-          aria-haspopup="true" aria-expanded="false" aria-label="Book menu" title="Book menu" hidden>&#9776;</span></button>
-      </div>
-      <div class="pop pop-menu" id="pop-book" hidden>
-        <button type="button" class="mi" id="mi-book-update" title="Make the open tabs, in their order and colors, this book's chapters">Update from tabs</button>
-        <button type="button" class="mi" id="mi-book-close" title="Put the book away; the tabs stay open">Close book</button>
-      </div>
+    <div id="docs" hidden>
+      <p class="toc-head">Documents <span id="docs-count"></span></p>
+      <div id="docs-list"></div>
     </div>
-    <div id="page-view">
-      <div id="docs" hidden>
-        <p class="toc-head">Documents <span id="docs-count"></span></p>
-        <div id="docs-list"></div>
-      </div>
-      <p class="toc-head">Contents</p><div id="toc-list"></div>
-    </div>
-    <div id="book-view" hidden></div>
+    <p class="toc-head">Contents</p><div id="toc-list"></div>
   </nav>
   <div id="toc-handle" title="Drag to resize · double-click to reset"></div>
   <button type="button" class="toc-toggle" id="toc-open" title="Show sidebar" aria-label="Show sidebar"><svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1.5" y="2.5" width="13" height="11" rx="2"/><path d="M6 2.5v11"/><path d="M9 6l2 2-2 2"/></svg></button>
@@ -1811,13 +1730,6 @@ body.has-tabs #toast { top: 99px; }   /* clear of the tab row, same gap as witho
           <p class="sub">Drop a <code>.md</code> file anywhere on this window.</p>
           <button type="button" class="btn" id="btn-open2">Choose a file&hellip;</button>
           <button type="button" class="btn" id="btn-try-fixer" title="Open a page that's broken on purpose">Try the Markdown fixer</button>
-          <div id="empty-books" hidden>
-            <p class="eb-head">&#128214; Books</p>
-            <button type="button" class="btn" id="btn-open-book"
-                    title="Choose the folder that has your northern-lights-books.json">Open a book&hellip;</button>
-            <p class="eb-note" id="eb-note"></p>
-            <div id="eb-list"></div>
-          </div>
           <ul>
             <li><b>Drag &amp; drop</b> &mdash; drop the <code>.md</code> plus any local images together and the images resolve.</li>
             <li><b>Drop a whole folder</b> &mdash; every <code>.md</code> inside it becomes a list in the sidebar, so you can read straight through a project. Several <code>.md</code> files dropped together work the same way.</li>
@@ -1828,7 +1740,6 @@ body.has-tabs #toast { top: 99px; }   /* clear of the tab row, same gap as witho
         </div>
       </div>
       <article class="md" id="doc"></article>
-      <nav id="book-nav" aria-label="Chapters" hidden></nav>
       <div id="raw-view" class="src-lines" aria-label="Markdown source (read-only)"></div>
       <div id="raw-edit"><pre id="raw-edit-gutter" aria-hidden="true"></pre><textarea id="raw-edit-ta" wrap="off" spellcheck="false" aria-label="Markdown source"></textarea></div>
       <button type="button" id="src-save" hidden title="Save your changes to the Markdown (Ctrl+S)">&#128190; Save <kbd>Ctrl+S</kbd></button>
@@ -3054,8 +2965,6 @@ function render() {
   folderAfterRender();
   refreshFixer();
   paintUndo();
-  paintBookNav();
-  if (state.book) renderBook();   // which chapter is on screen
 }
 
 function buildToc(headings) {
@@ -4775,376 +4684,6 @@ function setSourceView(on) {
   if (state.text) toast(on ? "Showing the Markdown source — ✎ Edit to change it" : "Showing the rendered page");
 }
 
-/* ------------------------------------------------------------------ books --
-   A book is a reading order across the folder's Markdown files: chapters,
-   kept in northern-lights-books.json at the root of the connected folder
-   (named for the app, so it doesn't collide with a project's own files).
-   One file holds any number of books, and is plain enough to edit by hand.
-
-   Save open tabs as a book: the tab order is the chapter order, and the tab
-   colors come along -- chapters side by side in one color read as a group in
-   the book's contents. Open a book: its chapters replace the open tabs (the
-   first TAB_MAX of them; the rest open from the book's list). The sidebar
-   switches between the page's contents and the book's, and every chapter ends
-   with previous / next.
-
-   A chapter whose file has moved shows as missing rather than breaking the
-   book. A books file that won't parse is reported and never written over.
-   The open book is remembered across a refresh; its files need the folder
-   connected again, as everything else here does.
-   -------------------------------------------------------------------------- */
-
-const BOOKS_FILE = "northern-lights-books.json";
-state.book = null;               // the open book: { name, chapters: [{ path, color }] }
-state.bookMissing = new Set();   // chapter paths whose file wasn't found
-state.tocMode = "page";          // the sidebar: "page" (contents) or "book"
-try {
-  const b = JSON.parse(localStorage.getItem("mdv:book") || "null");
-  if (b && b.name && Array.isArray(b.chapters)) state.book = b;
-  if (localStorage.getItem("mdv:tocMode") === "book") state.tocMode = "book";
-} catch (_) { /* none */ }
-
-const canFolder = typeof window.showDirectoryPicker === "function";
-const chapterLabel = (path) => path.split("/").pop().replace(/\.(md|markdown|mdown|mkd|txt)$/i, "");
-const chapterDir = (path) => path.split("/").slice(0, -1).join("/");
-const plural = (n, word) => n + " " + word + (n === 1 ? "" : "s");
-
-function saveBookState() {
-  try {
-    if (state.book) localStorage.setItem("mdv:book", JSON.stringify(state.book));
-    else localStorage.removeItem("mdv:book");
-  } catch (_) { /* quota */ }
-  paintEmptyBooks();
-  paintBookMenu();
-}
-
-/** northern-lights-books.json from the connected folder -- { books: [] } when there isn't one yet. */
-async function readBooksFile() {
-  let fh;
-  try { fh = await state.folder.getFileHandle(BOOKS_FILE); }
-  catch (e) { if (e.name === "NotFoundError") return { books: [] }; throw e; }
-  const text = await (await fh.getFile()).text();
-  let data;
-  try { data = JSON.parse(text); } catch (_) { throw new Error(BOOKS_FILE + " isn't valid JSON — fix it, or move it aside to start again"); }
-  if (Array.isArray(data)) data = { books: data };   // a bare list of books will do too
-  if (!data || !Array.isArray(data.books)) throw new Error(BOOKS_FILE + " has no \"books\" list");
-  return data;
-}
-
-async function writeBooksFile(data) {
-  const fh = await state.folder.getFileHandle(BOOKS_FILE, { create: true });
-  const w = await fh.createWritable();
-  await w.write(JSON.stringify(data, null, 2) + "\n");
-  await w.close();
-}
-
-/** Where a tab's file sits in the connected folder ("docs/intro.md"), or "". */
-async function tabFolderPath(t) {
-  const h = t === state.tabs[state.tabIndex] ? state.handle : t.handle;
-  if (!h || !state.folder) return "";
-  try { const p = await state.folder.resolve(h); return p ? p.join("/") : ""; } catch (_) { return ""; }
-}
-
-/** The open tabs as a book: a new one (asks for its name), or the open book updated. */
-async function saveBook(update) {
-  if (!state.folder) { toast("Connect your project folder first — books are saved in " + BOOKS_FILE + " there", true); return; }
-  commitInline();
-  const chapters = [], skipped = [];
-  for (const t of state.tabs) {
-    const path = await tabFolderPath(t);
-    if (path) { chapters.push({ path, color: t.color || "" }); t.bookPath = path; }
-    else skipped.push(t.name || "Pasted markdown");
-  }
-  if (!chapters.length) { toast("None of the open tabs is a file in “" + state.folder.name + "”, so there's no book to make", true); return; }
-  // Updating mirrors the tabs, so chapters not open as tabs (past the tab
-  // limit, or closed) would leave the book: say which, and ask.
-  if (update && state.book) {
-    const gone = state.book.chapters.filter((c) => !chapters.some((x) => x.path === c.path));
-    if (gone.length && !window.confirm(plural(gone.length, "chapter") + " of “" + state.book.name + "” " +
-        (gone.length === 1 ? "isn't" : "aren't") + " open as a tab and will leave the book: " +
-        gone.map((c) => chapterLabel(c.path)).join(", ") + ".\n\nUpdate it anyway?")) return;
-  }
-  let data;
-  try { data = await readBooksFile(); } catch (e) { toast(e.message, true); return; }
-  let name = update && state.book ? state.book.name : "";
-  if (!name) {
-    name = (window.prompt("Name this book (" + plural(chapters.length, "chapter") + "):", state.folder.name) || "").trim();
-    if (!name) return;
-  }
-  const at = data.books.findIndex((b) => b && String(b.name).toLowerCase() === name.toLowerCase());
-  if (at >= 0 && !update && !window.confirm("There's already a book called “" + data.books[at].name + "”. Replace its chapters with these tabs?")) return;
-  // Anything else written into the entry by hand stays.
-  const entry = Object.assign({}, at >= 0 ? data.books[at] : {}, { name, chapters, updated: new Date().toISOString() });
-  if (at >= 0) data.books[at] = entry; else data.books.push(entry);
-  try { await writeBooksFile(data); } catch (e) { toast("Could not save " + BOOKS_FILE + ": " + e.message, true); return; }
-  state.book = { name, chapters };
-  state.bookMissing.clear();
-  saveBookState();
-  persist();
-  setTocMode("book");
-  paintBookNav();
-  toast((update ? "Updated" : "Saved") + " “" + name + "” — " + plural(chapters.length, "chapter") +
-    (skipped.length ? " · left out " + plural(skipped.length, "tab") + " not in the folder: " + skipped.join(", ") : ""));
-}
-
-/** A chapter as a background tab, read from the folder; null if its file is gone. */
-async function chapterTab(c, used) {
-  try {
-    const handle = await folderFileHandle(c.path), file = await handle.getFile();
-    const tab = { name: handle.name, path: "", dir: chapterDir(c.path), text: await file.text(), handle,
-      lastModified: file.lastModified || 0, assets: null, dirty: false, scroll: 0, restored: false, used,
-      color: TAB_COLORS.includes(c.color) ? c.color : "", bookPath: c.path, folderDir: chapterDir(c.path) };
-    tab.key = docKey(tab);
-    return tab;
-  } catch (_) {
-    state.bookMissing.add(c.path);
-    return null;
-  }
-}
-
-async function openBook(name) {
-  let data;
-  try { data = await readBooksFile(); } catch (e) { toast(e.message, true); return; }
-  const b = data.books.find((x) => x && x.name === name);
-  const chapters = b && Array.isArray(b.chapters) ? b.chapters.filter((c) => c && typeof c.path === "string") : [];
-  if (!chapters.length) { toast("“" + name + "” has no chapters", true); return; }
-  // The book's chapters replace the open tabs -- asking once about unsaved edits.
-  if (state.tabs.length) {
-    closeTabs(state.tabs.slice());
-    if (state.tabs.length) return;   // kept: they hold unsaved edits
-  }
-  state.book = { name: b.name, chapters: chapters.map((c) => ({ path: c.path, color: TAB_COLORS.includes(c.color) ? c.color : "" })) };
-  state.bookMissing.clear();
-  saveBookState();
-  const now = Date.now();
-  for (const c of state.book.chapters) {
-    if (state.tabs.length >= TAB_MAX) break;
-    const t = await chapterTab(c, now - state.tabs.length);
-    if (t) state.tabs.push(t);
-  }
-  setTocMode("book");
-  if (!state.tabs.length) { toast("None of the chapters of “" + b.name + "” are in “" + state.folder.name + "”", true); return; }
-  state.tabIndex = -1;
-  await activateTab(0);
-  const n = state.book.chapters.length, miss = state.bookMissing.size;
-  toast("Opened “" + b.name + "” — " + plural(n, "chapter") +
-    (n > TAB_MAX ? ", the first " + TAB_MAX + " as tabs (the rest open from the book)" : "") +
-    (miss ? " · " + miss + " missing" : ""), miss > 0);
-}
-
-/** Show chapter i: its tab if it has one, else read it from the folder into a new tab. */
-async function openChapter(i) {
-  const c = state.book && state.book.chapters[i];
-  if (!c) return;
-  const open = state.tabs.findIndex((t) => t.bookPath === c.path);
-  if (open >= 0) { await activateTab(open); return; }
-  if (!state.folder) { toast("Connect the book's folder (📁) to open chapters that aren't in a tab", true); return; }
-  commitInline();
-  const t = await chapterTab(c, Date.now());
-  if (!t) { renderBook(); toast("“" + chapterLabel(c.path) + "” isn't at " + c.path + " any more", true); return; }
-  state.tabs.splice(state.tabIndex >= 0 ? state.tabIndex + 1 : state.tabs.length, 0, t);
-  // Oldest out first -- never the one being read, nor the one arriving.
-  while (state.tabs.length > TAB_MAX) {
-    let oldest = -1;
-    state.tabs.forEach((x, n) => {
-      if (n !== state.tabIndex && x !== t && (oldest < 0 || x.used < state.tabs[oldest].used)) oldest = n;
-    });
-    removeTab(oldest);
-  }
-  await activateTab(state.tabs.indexOf(t));
-}
-
-/** Which chapter is on screen, or -1. */
-function bookIndexOf() {
-  const t = state.tabs[state.tabIndex];
-  return state.book && t && t.bookPath ? state.book.chapters.findIndex((c) => c.path === t.bookPath) : -1;
-}
-
-function setTocMode(mode) {
-  state.tocMode = mode === "book" ? "book" : "page";
-  try { localStorage.setItem("mdv:tocMode", state.tocMode); } catch (_) { /* quota */ }
-  $("#page-view").hidden = state.tocMode === "book";
-  $("#book-view").hidden = state.tocMode !== "book";
-  for (const b of $("#toc-mode").children) b.setAttribute("aria-pressed", String(b.dataset.v === state.tocMode));
-  renderBook();
-}
-
-/** The sidebar's book view: the open book's chapters, or the books to choose from. */
-function renderBook() {
-  if (state.tocMode !== "book") return;
-  if (!state.book) { renderBookList(); return; }
-  const b = state.book, cur = bookIndexOf();
-  let html = '<p class="book-title">&#128214; ' + esc(b.name) + '</p><p class="book-sub">' + plural(b.chapters.length, "chapter") +
-    (state.folder ? " in " + esc(state.folder.name) : " · folder not connected") + "</p>";
-  let group = null;
-  b.chapters.forEach((c, i) => {
-    const color = c.color || TAB_COLORS[0], miss = state.bookMissing.has(c.path), dir = chapterDir(c.path);
-    if (color !== group) { html += (group ? "</div>" : "") + '<div class="ch-group" style="--gc:' + esc(color) + '">'; group = color; }
-    html += '<a href="#" data-ch="' + i + '" class="' + (i === cur ? "active" : "") + (miss ? " missing" : "") +
-      '" title="' + esc(c.path) + (miss ? " — not found" : "") + '"><span class="ch-num">' + (i + 1) + "</span>" +
-      esc(chapterLabel(c.path)) + (dir ? '<span class="doc-dir">' + esc(dir) + "</span>" : "") + "</a>";
-  });
-  if (group) html += "</div>";
-  const v = $("#book-view");
-  v.innerHTML = html;
-  const a = v.querySelector("a.active");
-  if (a) a.scrollIntoView({ block: "nearest" });
-}
-
-async function renderBookList() {
-  const v = $("#book-view");
-  let html = '<p class="book-title">Books</p>';
-  if (!canFolder) {
-    v.innerHTML = html + '<p class="book-note">A book is a set of your folder\'s Markdown files read in order, kept in ' +
-      BOOKS_FILE + " in the folder. Reading and writing that needs Chrome or Edge.</p>";
-    return;
-  }
-  if (!state.folder) {
-    v.innerHTML = html + '<p class="book-note">A book is a set of your folder\'s Markdown files read in order, kept in ' +
-      BOOKS_FILE + ' in the folder. Connect the folder to open one, or to make one from your tabs.</p>' +
-      '<div class="book-btns"><button type="button" class="primary" data-act="connect">&#128193; Connect folder</button></div>';
-    return;
-  }
-  v.innerHTML = html + '<p class="book-sub">Reading ' + BOOKS_FILE + "…</p>";
-  let data = null, err = "";
-  try { data = await readBooksFile(); } catch (e) { err = e.message; }
-  if (state.book || state.tocMode !== "book") return;   // moved on while it read
-  html += '<div class="book-btns"><button type="button" class="primary" data-act="save"' + (state.tabs.length ? "" : " disabled") +
-    ' title="Each open tab becomes a chapter, in tab order, keeping its color">Save open tabs as a book</button></div>';
-  if (err) html += '<p class="book-note">' + esc(err) + "</p>";
-  else if (!data.books.length) {
-    html += '<p class="book-note">No books in “' + esc(state.folder.name) + '” yet. Open the chapters as tabs in reading order — ' +
-      "color them to group them — then save them as a book.</p>";
-  } else {
-    html += '<div class="book-list">' + data.books.filter((b) => b && b.name).map((b) =>
-      '<a href="#" data-book="' + esc(b.name) + '">&#128214; ' + esc(b.name) + '<span class="doc-dir">' +
-      plural(Array.isArray(b.chapters) ? b.chapters.length : 0, "chapter") + "</span></a>").join("") + "</div>";
-  }
-  v.innerHTML = html;
-}
-
-/** Previous / next chapter, under the page. */
-function paintBookNav() {
-  const nav = $("#book-nav"), i = bookIndexOf();
-  if (i < 0 || !state.text) { nav.hidden = true; nav.innerHTML = ""; return; }
-  const ch = state.book.chapters;
-  // The nearest chapter each way whose file is there.
-  const step = (d) => { for (let j = i + d; j >= 0 && j < ch.length; j += d) if (!state.bookMissing.has(ch[j].path)) return j; return -1; };
-  const prev = step(-1), next = step(1);
-  const link = (j, cls, lead) => '<a class="' + cls + '" data-ch="' + j + '" tabindex="0"><small>' + lead + "</small>" + esc(chapterLabel(ch[j].path)) + "</a>";
-  nav.innerHTML = (prev >= 0 ? link(prev, "prev", "&larr; Previous chapter") : "") + (next >= 0 ? link(next, "next", "Next chapter &rarr;") : "");
-  nav.hidden = !nav.innerHTML;
-}
-
-$("#toc-mode").addEventListener("click", (e) => {
-  const b = e.target.closest("button[data-v]");
-  if (b) setTocMode(b.dataset.v);
-});
-$("#book-view").addEventListener("click", (e) => {
-  const a = e.target.closest("a[data-ch], a[data-book], button[data-act]");
-  if (!a) return;
-  e.preventDefault();
-  if (a.dataset.ch !== undefined) openChapter(Number(a.dataset.ch));
-  else if (a.dataset.book !== undefined) openBook(a.dataset.book);
-  else if (a.dataset.act === "save") saveBook(false);
-  else if (a.dataset.act === "update") saveBook(true);
-  else if (a.dataset.act === "connect") $("#folder-pick").click();
-});
-
-// The book's own actions live behind ☰ on the Book button (a popover, see POPS).
-function closeBook() {
-  state.book = null;
-  state.bookMissing.clear();
-  saveBookState();
-  renderBook();
-  paintBookNav();
-  toast("Book closed — the tabs stay open");
-}
-function paintBookMenu() {
-  $("#book-menu-btn").hidden = !state.book;
-  $("#mi-book-update").disabled = !state.folder;
-}
-$("#book-menu-btn").addEventListener("click", paintBookMenu);   // fresh, as it opens
-$("#book-menu-btn").addEventListener("keydown", (e) => {
-  if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.target.click(); }
-});
-$("#mi-book-update").addEventListener("click", () => { closePops(); saveBook(true); });
-$("#mi-book-close").addEventListener("click", () => { closePops(); closeBook(); });
-$("#book-nav").addEventListener("click", (e) => {
-  const a = e.target.closest("a[data-ch]");
-  if (a) openChapter(Number(a.dataset.ch));
-});
-$("#book-nav").addEventListener("keydown", (e) => {
-  const a = e.target.closest("a[data-ch]");
-  if (a && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); openChapter(Number(a.dataset.ch)); }
-});
-
-/* Books from the welcome page. A page can't reopen a folder by itself after a
-   restart -- the browser asks every time -- so one button does it all: choose
-   the folder, the books file is found (at its root, or failing that in a
-   subfolder, which then becomes the connected folder), and either the book
-   you had open carries on, or its books are listed to pick from. */
-
-/** The shallowest folder under `dir` holding the books file: [handle, "sub/dir"] or null. */
-async function findBooksFolder(dir) {
-  const queue = [[dir, ""]];
-  while (queue.length) {
-    const [d, path] = queue.shift();
-    try { await d.getFileHandle(BOOKS_FILE); return [d, path]; } catch (_) { /* not here */ }
-    if (path.split("/").length > 3) continue;   // three levels down is far enough
-    try {
-      for await (const [name, h] of d.entries()) {
-        if (h.kind === "directory" && !SKIP_DIR.test(name)) queue.push([h, path ? path + "/" + name : name]);
-      }
-    } catch (_) { /* unreadable */ }
-  }
-  return null;
-}
-
-function paintEmptyBooks(list) {
-  $("#empty-books").hidden = !canFolder;
-  $("#btn-open-book").textContent = state.book ? "Continue reading “" + state.book.name + "”…" : "Open a book…";
-  $("#eb-list").innerHTML = (list || []).map((b) =>
-    '<button type="button" class="btn" data-book="' + esc(b.name) + '">&#128214; ' + esc(b.name) + "</button>").join("");
-}
-
-$("#btn-open-book").addEventListener("click", async () => {
-  const note = $("#eb-note");
-  note.textContent = "";
-  // Already connected (all the tabs closed, say): no need to ask again.
-  let picked = state.folder;
-  if (!picked) {
-    try { picked = await window.showDirectoryPicker({ id: "nl-folder", mode: "readwrite" }); }
-    catch (e) { if (e && e.name !== "AbortError") toast("Couldn't open that folder: " + (e.message || e.name), true); return; }
-  }
-  note.textContent = "Looking for " + BOOKS_FILE + "…";
-  const found = await findBooksFolder(picked);
-  if (!found) {
-    if (picked !== state.folder) await connectFolder(picked);
-    note.textContent = "No " + BOOKS_FILE + " in “" + picked.name + "”. Open your chapters as tabs, then save them as a book from the sidebar's 📖 Book view.";
-    return;
-  }
-  const [dir, sub] = found;
-  if (dir !== state.folder) await connectFolder(dir);
-  note.textContent = sub ? "Found it in " + picked.name + "/" + sub + " — using that folder." : "";
-  let data;
-  try { data = await readBooksFile(); } catch (e) { note.textContent = e.message; return; }
-  const books = data.books.filter((b) => b && b.name);
-  const last = state.book && books.find((b) => b.name === state.book.name);
-  if (last || books.length === 1) { await openBook((last || books[0]).name); return; }
-  if (!books.length) { note.textContent = BOOKS_FILE + " has no books in it yet."; return; }
-  paintEmptyBooks(books);
-  note.textContent = (note.textContent ? note.textContent + " " : "") + "Which book?";
-});
-$("#eb-list").addEventListener("click", (e) => {
-  const b = e.target.closest("button[data-book]");
-  if (b) openBook(b.dataset.book);
-});
-
-setTocMode(state.tocMode);
-paintEmptyBooks();
-paintBookMenu();
-
 /* ------------------------------------------------------------ source edit --
    ✎ Edit (Ctrl+E) while the source shows turns it into a text box: the whole
    file, line numbers beside it. Ctrl+S or the floating 💾 Save saves and
@@ -5492,7 +5031,6 @@ async function connectFolder(handle) {
   const miss = state.text && !state.handle;
   toast("Connected “" + handle.name + "”" + (n ? " — relinked " + linked + " of " + n + " open document" + (n === 1 ? "" : "s") : "") +
     (miss ? ". This one didn't link — click the folder button to see why" : ""), miss);
-  renderBook();   // the book view can read northern-lights-books.json now
 }
 
 /**
@@ -6353,7 +5891,7 @@ function persist() {
     localStorage.setItem("mdv:tabs", JSON.stringify({
       active: saved.indexOf(active),
       tabs: saved.map((t) => ({ name: t.name, path: t.path, dir: t.dir, text: t.text, scroll: t.scroll || 0,
-        dirty: !!t.dirty, color: t.color || "", bookPath: t.bookPath || "" })),
+        dirty: !!t.dirty, color: t.color || "" })),
     }));
     localStorage.removeItem("mdv:last");   // the single-document format this replaced
   } catch (_) { /* quota; not worth surfacing */ }
@@ -6376,7 +5914,7 @@ function restoreTabs() {
     state.tabs = saved.tabs.filter((t) => t && typeof t.text === "string" && t.text).map((t, n) => {
       const tab = { name: t.name || "", path: t.path || "", dir: t.dir || "", text: t.text,
         handle: null, lastModified: 0, assets: null, scroll: Number(t.scroll) || 0, dirty: !!t.dirty,
-        color: TAB_COLORS.includes(t.color) ? t.color : "", bookPath: t.bookPath || "",
+        color: TAB_COLORS.includes(t.color) ? t.color : "",
         used: n === saved.active ? now : now - 1000 - n, restored: true };
       tab.key = docKey(tab);
       return tab;
@@ -7013,8 +6551,7 @@ function cycleZen() {
 /* ---------- popovers ---------- */
 
 const POPS = [["#btn-display", "#pop-display"], ["#btn-more", "#pop-more"],
-              ["#doc-name", "#pop-path"], ["#btn-fix", "#pop-fix"], ["#btn-folder", "#pop-folder"],
-              ["#book-menu-btn", "#pop-book"]];
+              ["#doc-name", "#pop-path"], ["#btn-fix", "#pop-fix"], ["#btn-folder", "#pop-folder"]];
 
 function closePops(except) {
   closeTabColors();
