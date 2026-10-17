@@ -98,6 +98,7 @@ Complete feature inventory with status, timeline, and metadata.
 | Undo / redo history | edit | ✓ | 100% | 10/10 | 10/10 | v3.0 | | 1 | high | Safety | Toolbar ↶ / ↷ (Ctrl+Z / Ctrl+Y outside text boxes): one step per applied block or section edit (each time a block loses focus — the same paragraph twice is two steps), replace, or fix. Last 100 per tab (Word's default depth), in memory, with a size budget on very large files; each step saves and scrolls to the change with a brief highlight. Cleared if the file changes on disk. Typing inside an open block keeps the browser's own Ctrl+Z. Replaces the find/fixer one-shot Undo buttons |
 | Bulk-close tabs (hold ×) | nav | ✓ | 100% | 10/15 | 10/15 | v3.0 | | 2 | medium | Workflow | Hold a tab's × for half a second (or right-click it): Close this tab, Close all tabs, Keep only this tab, or Close all tabs of a color (only colors in use are offered, with counts; the held tab's is ringed). A quick click still closes just that tab. One "unsaved edits" question for the whole batch. Every closing tab goes out in a little burst of flame (off under the system's reduce-motion setting) |
 | Tab colors | nav | ✓ | 100% | 10/13 | 10/15 | v3.0 | | 3 | medium | UX | Each tab has a color dot: click it to pick from ten colors, or double-click to step to the next (keep clicking to keep stepping; up to a second between clicks). Dot clicks recolor without switching tabs. A colored tab gets a tint and underline; colors are remembered |
+| Tab sets | nav | ✓ | 100% | 10/17 | 10/17 | v3.0 | | 2 | medium | Workflow | ⋮ → Save tabs as a set… writes the open tabs (each file's path in the connected folder, its color, in tab order) to [name].json in the folder, offering the last set's name and asking before replacing a file. ⋮ → Open a tab set… opens a set's files as tabs, in order and color, like a multi-file drop: they join the open tabs and the first is shown; tabs already open are reused, not duplicated. Tabs that aren't files in the folder are left out (and named). Paths are relative to the set file, so a set in a subfolder works. The welcome page (no tabs open) has Open a tab set… too: it asks for the folder (if none is connected), finds the sets saved at its root, and opens the only one or offers them as buttons. Needs Chrome/Edge (folder access) |
 | Tabs remembered across sessions | state | ✓ | 100% | 10/10 | 10/10 | v3.0 | | 1 | high | Workflow | Tab text saved to localStorage (2M-char budget); restored tabs show in italics as saved copies until the file is opened again (file handles can't survive a refresh on file://) |
 
 ## Legend: Feature Type Codes
@@ -124,10 +125,10 @@ Complete feature inventory with status, timeline, and metadata.
 
 ## Summary Stats
 
-- **Total Features:** 70, all shipped (✓)
+- **Total Features:** 71, all shipped (✓)
 - **v1.0:** 46 rows (7/24–7/31) — some since reworked in v3.0
 - **v2.0:** 6 (table enhancements + logo modes, 7/31–8/1)
-- **v3.0:** 17 so far (data layer, raw HTML, tabs, editing, find & replace, connect folder, bulk tab close, tab colors, source editing, read aloud; to 10/15)
+- **v3.0:** 18 so far (data layer, raw HTML, tabs, editing, find & replace, connect folder, bulk tab close, tab colors, source editing, read aloud, tab sets; to 10/17)
 - **Architecture:** Single-file HTML application (~8,100 lines and ~550 KB of app, plus ~3.3 MB of embedded Mermaid: ~3.9 MB in all)
 - **Dependencies:** Mermaid (vendored, MIT licensed)
 - **Installation:** None required — bookmark the HTML file
@@ -172,6 +173,6 @@ Considered and left out: emoji shortcodes (`:tada:`; a 30–50 KB name table for
 
 ---
 
-**Last Updated:** 10/15/2026  
+**Last Updated:** 10/17/2026  
 **Maintainer:** Scott  
 **License:** See LICENSE file in distro/

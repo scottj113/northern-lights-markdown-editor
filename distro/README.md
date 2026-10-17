@@ -250,6 +250,11 @@ italics), and one **Connect folder** relinks them all. A browser restriction, no
   Drop or pick several files and each opens as a tab. × or middle-click closes;
   hold the × (or right-click it) to close all tabs, keep only this one, or close every
   tab of a color. Closed tabs go out in a little puff of flame.
+- **Tab sets** — **⋮ → Save tabs as a set…** saves your open tabs (their files, order and
+  colors) as `[name].json` in the connected folder; **⋮ → Open a tab set…** opens them all
+  again, just as if you'd dropped those files in together. With no tabs open, the welcome
+  page's **Open a tab set…** asks for your folder and offers the sets saved in it. Needs
+  the connected folder, so Chrome and Edge.
 - **Edit in place** — `Ctrl+E`, then click a block to edit its Markdown where it sits.
   Click away (or `Ctrl+Enter`) to apply and save, `Esc` to cancel, `↑`/`↓` at the edges
   to walk into the next block.

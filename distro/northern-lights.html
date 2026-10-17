@@ -933,6 +933,10 @@ body.source-view #find-toggle { visibility: hidden; }
 #empty ul { text-align: left; margin: 18px 0 0; padding: 0; list-style: none; font-size: 13px; color: var(--fg-muted); }
 #empty li { padding: 5px 0; border-top: 1px solid var(--border); }
 #empty li:first-child { border-top: 0; }
+/* Open a tab set… on the welcome page: a word, and the sets to pick from. */
+#empty .ts-note { margin: 10px 0 0; font-size: 12.5px; color: var(--fg-muted); }
+#empty .ts-note:empty, #ts-list:empty { display: none; }
+#ts-list { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin-top: 8px; }
 kbd {
   font: 11.5px/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   background: var(--code-bg); border: 1px solid var(--border-strong);
@@ -1654,6 +1658,9 @@ body.has-tabs #toast { top: 92px; }   /* clear of the tab row, same gap as witho
       <button type="button" class="mi" id="mi-export" disabled>Export standalone HTML&hellip;</button>
       <button type="button" class="mi" id="mi-print" disabled>Print / Save as PDF <kbd>Ctrl+P</kbd></button>
       <hr>
+      <button type="button" class="mi" id="mi-tabset-save" title="Save the open tabs — their files, order and colors — as [name].json in the connected folder">Save tabs as a set&hellip;</button>
+      <button type="button" class="mi" id="mi-tabset-open" title="Open a saved tab set: its files open as tabs, in order and color">Open a tab set&hellip;</button>
+      <hr>
       <button type="button" class="mi" id="mi-try-fixer" title="Open a page that's broken on purpose">Try the Markdown fixer</button>
       <button type="button" class="mi" id="mi-clear-cache">Clear cache and settings&hellip;</button>
     </div>
@@ -1730,6 +1737,9 @@ body.has-tabs #toast { top: 92px; }   /* clear of the tab row, same gap as witho
           <p class="sub">Drop a <code>.md</code> file anywhere on this window.</p>
           <button type="button" class="btn" id="btn-open2">Choose a file&hellip;</button>
           <button type="button" class="btn" id="btn-try-fixer" title="Open a page that's broken on purpose">Try the Markdown fixer</button>
+          <button type="button" class="btn" id="btn-open-tabset" title="Pick your project folder, then a tab set saved in it">Open a tab set&hellip;</button>
+          <p class="ts-note" id="ts-note"></p>
+          <div id="ts-list"></div>
           <ul>
             <li><b>Drag &amp; drop</b> &mdash; drop the <code>.md</code> plus any local images together and the images resolve.</li>
             <li><b>Drop a whole folder</b> &mdash; every <code>.md</code> inside it becomes a list in the sidebar, so you can read straight through a project. Several <code>.md</code> files dropped together work the same way.</li>
@@ -5102,6 +5112,180 @@ $("#folder-pick").addEventListener("click", async () => {
     if (e && e.name === "AbortError") return;
     toast("Couldn't open that folder: " + (e && (e.message || e.name)), true);
   }
+});
+
+/* --------------------------------------------------------------- tab sets --
+   A tab set is a named group of tabs, kept as [name].json in the connected
+   folder: each tab's file (its path in the folder) and its color, in tab
+   order. ⋮ → Save tabs as a set… writes one (or replaces it, after asking);
+   ⋮ → Open a tab set… opens its files as tabs, in that order and those
+   colors -- exactly as if they'd been dropped in together: they join the open
+   tabs, and the first is shown. Nothing else changes.
+
+   It needs the connected folder: the file only says where each tab's file
+   is, and only the folder lets a page open them again. A tab that isn't a
+   file in the folder can't be in a set, and saving says which were left out.
+   Paths are relative to the set's own file, so a set in a subfolder works too.
+   -------------------------------------------------------------------------- */
+
+state.tabSetName = "";   // the set last saved or opened: Save offers its name again
+
+async function saveTabSet() {
+  closePops();
+  if (!state.folder) { toast("Connect your project folder first (📁) — a tab set is saved there", true); return; }
+  commitInline();
+  const tabs = [], outside = [];
+  for (const t of state.tabs) {
+    const h = t === state.tabs[state.tabIndex] ? state.handle : t.handle;
+    let where = null;
+    if (h) { try { where = await state.folder.resolve(h); } catch (_) { /* elsewhere */ } }
+    if (where) tabs.push({ path: where.join("/"), color: t.color || "" });
+    else outside.push(t.name || "Pasted markdown");
+  }
+  if (!tabs.length) { toast("None of the open tabs is a file in “" + state.folder.name + "”, so there's no set to save", true); return; }
+  const name = (window.prompt("Name this tab set (" + tabs.length + " tab" + (tabs.length === 1 ? "" : "s") + "):",
+    state.tabSetName) || "").trim();
+  if (!name) return;
+  const fileName = name.replace(/[\\/:*?"<>|]+/g, "-").replace(/\.json$/i, "").trim() + ".json";
+  let exists = false;
+  try { await state.folder.getFileHandle(fileName); exists = true; } catch (_) { /* new */ }
+  if (exists && !window.confirm("“" + fileName + "” already exists in “" + state.folder.name + "”.\n\nReplace it with these " +
+      tabs.length + " tab" + (tabs.length === 1 ? "" : "s") + "?")) return;
+  try {
+    const fh = await state.folder.getFileHandle(fileName, { create: true });
+    const w = await fh.createWritable();
+    await w.write(JSON.stringify({ name, tabs, saved: new Date().toISOString() }, null, 2) + "\n");
+    await w.close();
+  } catch (e) { toast("Could not save " + fileName + ": " + e.message, true); return; }
+  state.tabSetName = name;
+  toast((exists ? "Replaced" : "Saved") + " tab set “" + name + "” as " + fileName + " — " + tabs.length + " tab" + (tabs.length === 1 ? "" : "s") +
+    (outside.length ? " · left out (not in the folder): " + outside.join(", ") : ""), outside.length > 0);
+}
+
+async function openTabSet() {
+  closePops();
+  if (!state.folder) { toast("Connect your project folder first (📁) — a tab set's files are opened from there", true); return; }
+  let fh;
+  try {
+    [fh] = await window.showOpenFilePicker({ id: "nl-tabset", startIn: state.folder,
+      types: [{ description: "Tab set", accept: { "application/json": [".json"] } }] });
+  } catch (e) {
+    if (e && e.name !== "AbortError") toast("Couldn't open that file: " + (e.message || e.name), true);
+    return;
+  }
+  await openTabSetFile(fh);
+}
+
+/** Open a tab set's file: its files become tabs, in order and color. */
+async function openTabSetFile(fh) {
+  let where = null;
+  try { where = await state.folder.resolve(fh); } catch (_) { /* elsewhere */ }
+  if (!where) { toast("“" + fh.name + "” isn't in “" + state.folder.name + "” — connect the folder it's in first", true); return; }
+  let list = null, name = fh.name.replace(/\.json$/i, "");
+  try {
+    const data = JSON.parse(await (await fh.getFile()).text());
+    if (data && typeof data.name === "string" && data.name) name = data.name;
+    list = data && (data.tabs || data.chapters);
+  } catch (_) { /* not JSON */ }
+  if (!Array.isArray(list)) { toast("“" + fh.name + "” isn't a tab set — it needs a \"tabs\" list", true); return; }
+  commitInline();
+  const base = where.slice(0, -1).join("/"), now = Date.now(), fresh = [];
+  let missing = 0, first = null;
+  for (const e of list) {
+    if (fresh.length >= TAB_MAX) break;
+    const path = e && typeof e.path === "string" ? folderPath(base, e.path) : null;
+    if (!path) { missing++; continue; }
+    const color = TAB_COLORS.includes(e.color) && e.color !== TAB_COLORS[0] ? e.color : "";
+    try {
+      const handle = await folderFileHandle(path), file = await handle.getFile();
+      const dir = path.split("/").slice(0, -1).join("/");
+      const tab = { name: handle.name, path: "", dir, text: await file.text(), handle, lastModified: file.lastModified || 0,
+        assets: null, dirty: false, scroll: 0, restored: false, used: now - fresh.length, color, folderDir: dir };
+      tab.key = docKey(tab);
+      // Already open (matched by name and place, or as the same file on disk):
+      // that tab takes the set's color and its place in the order.
+      let open = state.tabs.find((x) => x.key === tab.key);
+      for (const x of state.tabs) {
+        if (open) break;
+        const xh = x === state.tabs[state.tabIndex] ? state.handle : x.handle;
+        try { if (xh && await xh.isSameEntry(handle)) open = x; } catch (_) { /* not comparable */ }
+      }
+      if (open) { open.color = color; fresh.push(open); } else fresh.push(tab);
+      if (!first) first = fresh[fresh.length - 1];
+    } catch (_) { missing++; }
+  }
+  if (!fresh.length) { toast("None of the files in “" + name + "” were found in “" + state.folder.name + "”", true); return; }
+  // In after the current tab, in the set's order -- like a multi-file drop.
+  const cur = state.tabs[state.tabIndex];
+  state.tabs = state.tabs.filter((x) => !fresh.includes(x));
+  const at = cur && state.tabs.includes(cur) ? state.tabs.indexOf(cur) + 1 : state.tabs.length;
+  state.tabs.splice(at, 0, ...fresh);
+  state.tabIndex = cur ? state.tabs.indexOf(cur) : -1;
+  // Over the limit: the oldest of the others go first, never the set's.
+  while (state.tabs.length > TAB_MAX) {
+    let oldest = -1;
+    state.tabs.forEach((x, n) => {
+      if (n !== state.tabIndex && !fresh.includes(x) && (oldest < 0 || x.used < state.tabs[oldest].used)) oldest = n;
+    });
+    if (oldest < 0) break;
+    removeTab(oldest);
+  }
+  if (state.tabIndex === state.tabs.indexOf(first)) state.tabIndex = -1;   // so activateTab redraws it
+  await activateTab(state.tabs.indexOf(first));
+  renderTabs();
+  persist();
+  state.tabSetName = name;
+  toast("Opened tab set “" + name + "” — " + fresh.length + " tab" + (fresh.length === 1 ? "" : "s") +
+    (list.length > TAB_MAX ? " (the first " + TAB_MAX + ")" : "") + (missing ? " · " + missing + " not found" : ""), missing > 0);
+}
+
+$("#mi-tabset-save").addEventListener("click", saveTabSet);
+$("#mi-tabset-open").addEventListener("click", openTabSet);
+$("#mi-tabset-save").hidden = $("#mi-tabset-open").hidden = !canPickDir;
+
+/* From the welcome page. A page can't open a folder by itself, and a click
+   allows only one picker -- so this one asks for the folder (unless one is
+   connected) and then finds the tab sets saved in it: one opens at once,
+   several are offered as buttons. */
+async function findTabSets() {
+  const sets = [];
+  try {
+    for await (const [fileName, h] of state.folder.entries()) {
+      if (h.kind !== "file" || !/\.json$/i.test(fileName) || sets.length >= 50) continue;
+      try {
+        const file = await h.getFile();
+        if (file.size > 512 * 1024) continue;   // a tab set is small; skip big data files
+        const data = JSON.parse(await file.text());
+        if (data && Array.isArray(data.tabs)) sets.push({ handle: h, name: typeof data.name === "string" && data.name ? data.name : fileName.replace(/\.json$/i, "") });
+      } catch (_) { /* not a tab set */ }
+    }
+  } catch (_) { /* unreadable */ }
+  return sets.sort((a, b) => a.name.localeCompare(b.name));
+}
+let welcomeSets = [];
+$("#btn-open-tabset").hidden = !canPickDir;
+$("#btn-open-tabset").addEventListener("click", async () => {
+  const note = $("#ts-note"), list = $("#ts-list");
+  note.textContent = "";
+  list.innerHTML = "";
+  if (!state.folder) {
+    let dir;
+    try { dir = await window.showDirectoryPicker({ id: "nl-folder", mode: "readwrite" }); }
+    catch (e) { if (e && e.name !== "AbortError") toast("Couldn't open that folder: " + (e.message || e.name), true); return; }
+    await connectFolder(dir);
+  }
+  welcomeSets = await findTabSets();
+  if (welcomeSets.length === 1) { await openTabSetFile(welcomeSets[0].handle); return; }
+  if (!welcomeSets.length) {
+    note.textContent = "No tab sets in “" + state.folder.name + "” yet. Open some files, then ⋮ → Save tabs as a set…";
+    return;
+  }
+  note.textContent = "Which tab set?";
+  list.innerHTML = welcomeSets.map((s, i) => '<button type="button" class="btn" data-set="' + i + '">' + esc(s.name) + "</button>").join("");
+});
+$("#ts-list").addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-set]");
+  if (b && welcomeSets[Number(b.dataset.set)]) openTabSetFile(welcomeSets[Number(b.dataset.set)].handle);
 });
 
 /* ---------------------------------------------------------------- history --
