@@ -1,0 +1,13 @@
+{
+  "name": "sample tab set",
+  "tabs": [
+    { "path": "FEATURES.md", "color": "" },
+    { "path": "alerts-test.md", "color": "#2d6de9" },
+    { "path": "html-tag-test.md", "color": "#2d6de9" },
+    { "path": "fixer-test.md", "color": "#e0702b" },
+    { "path": "fixer-test-autofix.md", "color": "#e0702b" },
+    { "path": "demo-data-tables.md", "color": "#2e9e5b" },
+    { "path": "VS_CODE_SETUP.md", "color": "#7b4fd0" }
+  ],
+  "saved": "2026-10-18T00:00:00.000Z"
+}

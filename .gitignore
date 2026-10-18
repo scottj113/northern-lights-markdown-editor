@@ -18,3 +18,7 @@
 distro/*.zip
 
 summary.md
+
+# Personal tab sets (⋮ → Save tabs as a set…). "sample tab set.json" is the
+# one that ships as an example.
+northern lights tab set.json
