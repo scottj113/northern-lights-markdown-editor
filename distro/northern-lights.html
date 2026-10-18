@@ -469,14 +469,15 @@ button.btn.icon { padding: 5px 7px; }
 /* Toggled by a body class rather than [hidden]: display:flex here would
    override the hidden attribute's display:none. */
 #tabs {
-  position: fixed; inset: 46px 0 auto 0; height: 30px; z-index: 39;
-  display: none; align-items: stretch; gap: 1px; padding: 0 10px;
+  position: fixed; inset: 46px 0 auto 0; height: 34px; z-index: 39;
+  /* 4px of headroom above the tabs: the open tab, drawn larger, grows into it. */
+  display: none; align-items: stretch; gap: 1px; padding: 4px 10px 0;
   background: var(--bg-raised); border-bottom: 1px solid var(--border);
   overflow-x: auto; overflow-y: hidden; scrollbar-width: none;
 }
 #tabs::-webkit-scrollbar { display: none; }
 body.has-tabs #tabs { display: flex; }
-body.has-tabs #shell { top: 76px; }
+body.has-tabs #shell { top: 80px; }
 #tabs .tab {
   flex: none; display: flex; align-items: center; gap: 3px; max-width: 220px;
   padding: 0 3px 0 10px; color: var(--fg-muted); font-size: 12px;
@@ -498,7 +499,8 @@ body.has-tabs #shell { top: 76px; }
 /* Each tab's own color: a dot (navy by default; click it for the picker,
    double-click for the next color), and once changed, a tint and underline in that color. */
 #tabs .tab { --tc: #24407a; box-shadow: inset 0 3px var(--tc); }
-#tabs .tab.active { box-shadow: inset 0 3px var(--tc), inset 0 -2px var(--accent); }
+#tabs .tab.active { box-shadow: inset 0 3px var(--tc), inset 0 -2px var(--accent),
+  inset 1px 0 var(--edge), inset -1px 0 var(--edge); }
 #tabs .tab-dot {
   flex: none; width: 9px; height: 9px; margin-right: 4px; border-radius: 50%;
   background: var(--tc); box-shadow: 0 0 0 1px var(--border-strong); cursor: pointer;
@@ -506,7 +508,22 @@ body.has-tabs #shell { top: 76px; }
 #tabs .tab-dot:hover { box-shadow: 0 0 0 2px var(--accent-soft), 0 0 0 3px var(--tc); }
 #tabs .tab.colored { background: color-mix(in srgb, var(--tc) 13%, transparent); }
 #tabs .tab.colored:hover { background: color-mix(in srgb, var(--tc) 22%, transparent); }
-#tabs .tab.colored.active { box-shadow: inset 0 3px var(--tc), inset 0 -2px var(--tc); }
+#tabs .tab.colored.active { box-shadow: inset 0 3px var(--tc), inset 0 -2px var(--tc),
+  inset 1px 0 var(--edge), inset -1px 0 var(--edge); }
+/* The open tab sits a little closer: slightly larger than its neighbours,
+   on the page's own colour, lifted by a soft shadow. Scaled from its bottom
+   edge, so it grows up into the row's headroom and stays joined to the page. */
+#tabs .tab { position: relative; transition: transform .15s ease-out; }
+#tabs .tab.active {
+  transform: scale(1.12); transform-origin: 50% 100%; z-index: 1;
+  filter: drop-shadow(0 -1px 4px rgba(0, 0, 0, .16));
+}
+/* Solid, not see-through: the neighbours it overlaps don't show through its
+   sides, and a firm edge in its own colour marks where it ends. */
+#tabs .tab.active { --edge: color-mix(in srgb, var(--tc) 55%, var(--border-strong)); }
+#tabs .tab.active:not(.colored) { background: var(--bg); }
+#tabs .tab.colored.active { background: color-mix(in srgb, var(--tc) 13%, var(--bg)); }
+@media (prefers-reduced-motion: reduce) { #tabs .tab { transition: none; } }
 /* The dragged tab rides along under the pointer, see-through, above its
    neighbours; the gap it leaves is where it will land. */
 #tabs .tab.dragging {
@@ -806,6 +823,7 @@ body.blank #dock { display: none; }
 }
 #dock button:hover:not(:disabled) { color: var(--accent); background: var(--accent-soft); }
 #dock button:disabled { opacity: .35; cursor: default; }
+#dock button[hidden] { display: none; }   /* ⏹ only while reading aloud */
 #dock button[aria-pressed="true"] { color: var(--accent); background: var(--accent-soft); }
 #dock .dock-sep { width: 1px; height: 18px; background: var(--border); margin: 0 3px; }
 /* Grab here to move the dock anywhere; double-click to send it home. */
@@ -823,7 +841,7 @@ body.zen #bar, body.zen.zen-full #tabs, body.zen #toc, body.zen #toc-handle,
 body.zen #toc-open, body.zen #find-ticks { display: none !important; }
 body.zen #tabs { top: 0; }
 body.zen #shell { top: 0 !important; }
-body.zen.has-tabs:not(.zen-full) #shell { top: 30px !important; }
+body.zen.has-tabs:not(.zen-full) #shell { top: 34px !important; }
 
 /* Long lines wrap inside the page -- and so inside the bumper lanes -- instead
    of running past them. Continuations sit under the text, not the number. */
@@ -876,7 +894,7 @@ body.source-view .toc-edit { display: none !important; }
   border-radius: 8px; box-shadow: var(--shadow);
 }
 #find-bar[hidden] { display: none; }
-body.has-tabs #find-bar { top: 84px; }
+body.has-tabs #find-bar { top: 88px; }
 /* With the Markdown pane open, stay over the document -- on top of the pane
    the bar would hide the very line about to be replaced. */
 body.split:not(.blank) #find-bar { right: calc(var(--split-w, 38%) + 26px); }
@@ -968,7 +986,7 @@ body.dragging #drop { display: flex; }
   max-width: 70vw;
 }
 #toast.show { opacity: 1; transform: translate(-50%, 0); }
-body.has-tabs #toast { top: 92px; }   /* clear of the tab row, same gap as without it */
+body.has-tabs #toast { top: 96px; }   /* clear of the tab row, same gap as without it */
 #toast.err { border-color: #d9534f; color: #d9534f; }
 
 #vscode-welcome {
@@ -1575,7 +1593,8 @@ body.has-tabs #toast { top: 92px; }   /* clear of the tab row, same gap as witho
             aria-haspopup="true" aria-expanded="false">&#128193; <span id="folder-label">Connect folder</span></button>
     <div class="pop" id="pop-folder" hidden>
       <p class="folder-text" id="folder-status"></p>
-      <div class="pop-row"><button type="button" class="btn" id="folder-pick">Choose folder&hellip;</button></div>
+      <div class="pop-row"><button type="button" class="btn" id="folder-reconnect" hidden></button>
+        <button type="button" class="btn" id="folder-pick">Choose folder&hellip;</button></div>
     </div>
   </div>
 
@@ -3592,9 +3611,9 @@ function loadText(text, name, path) {
    finds its existing tab by key instead of adding a duplicate.
 
    Tabs outlive a refresh as saved copies of their text (see persist()). Their
-   file handles do not: IndexedDB is blocked on file://, so there is nowhere to
-   keep one. A restored tab shows its saved copy, in italics, until the file
-   is opened again.
+   own file handles aren't kept: a restored tab shows its saved copy, in
+   italics, until its file is linked again -- which happens by itself when the
+   connected folder comes back (see "connect folder").
    -------------------------------------------------------------------------- */
 
 const TAB_MAX = 12;
@@ -3916,8 +3935,8 @@ async function reloadFromHandle(force) {
 function updateSync() {
   const pill = $("#sync");
   // Reload and watch both need a File System Access handle. Drag & drop and
-  // paste never produce one, and it cannot be persisted: IndexedDB is blocked
-  // on file:// origins, so the handle dies with every page refresh.
+  // paste never produce one; after a refresh, one comes back only through the
+  // remembered folder (see "connect folder").
   const relevant = canPick && !!state.text;
   pill.hidden = !relevant;
   if (!relevant) return;
@@ -4886,10 +4905,16 @@ function scrollDocTo(line) {
 }
 
 /* -------------------------------------------------------- connect folder --
-   File handles can't survive a refresh on file:// (no IndexedDB), so tabs come
-   back as saved copies and a document from the VS Code task never had one.
-   One folder pick per session fixes both: a directory handle with read/write
-   access reaches every file under it.
+   Tabs come back from a refresh as saved copies, and a document from the VS
+   Code task never had a file handle at all. One connected folder fixes both: a
+   directory handle with read/write access reaches every file under it.
+
+   The folder is remembered across refreshes and Back/Forward: its handle is
+   kept in IndexedDB (localStorage holds only text). On load it comes straight
+   back if the browser still grants access -- Chrome and Edge do when you chose
+   "Allow on every visit" -- and otherwise waits behind one click, Reconnect,
+   which asks for permission without the folder dialog. If the browser won't
+   store the handle at all, it's simply one pick per session, as before.
 
    On connect, each open tab is matched to its file -- by its real path when
    the VS Code task supplied one, else folder + name, else a name that's
@@ -4904,15 +4929,65 @@ function scrollDocTo(line) {
    -------------------------------------------------------------------------- */
 
 const canPickDir = typeof window.showDirectoryPicker === "function";
-state.folder = null;          // FileSystemDirectoryHandle, this session only
+state.folder = null;          // FileSystemDirectoryHandle, connected
+state.folderSaved = null;     // last session's folder, waiting for permission
 let folderIndex = null;       // Markdown files in it: [{ name, dir, handle }]
 const folderAssets = new Map();   // folder-relative path -> object URL
+
+// A one-shelf IndexedDB store, for what localStorage can't hold (a folder handle).
+const NL_DB = "northern-lights";
+function idb(mode, act) {
+  return new Promise((resolve, reject) => {
+    const open = indexedDB.open(NL_DB, 1);
+    open.onupgradeneeded = () => open.result.createObjectStore("kv");
+    open.onerror = () => reject(open.error);
+    open.onsuccess = () => {
+      const tx = open.result.transaction("kv", mode), req = act(tx.objectStore("kv"));
+      tx.oncomplete = () => { open.result.close(); resolve(req.result); };
+      tx.onerror = tx.onabort = () => { open.result.close(); reject(tx.error); };
+    };
+  });
+}
+const idbGet = (key) => idb("readonly", (s) => s.get(key));
+const idbSet = (key, val) => idb("readwrite", (s) => s.put(val, key));
+
+/** Keep the connected folder for next time. Silent if the browser won't. */
+function rememberFolder(handle) { idbSet("folder", handle).catch(() => { /* not storable here */ }); }
+
+/** On load: last session's folder -- back at once if access still stands, else one click away. */
+async function restoreFolder() {
+  if (!canPickDir || state.folder) return;
+  let h = null;
+  try { h = await idbGet("folder"); } catch (_) { return; }
+  if (!h || h.kind !== "directory") return;
+  let perm = "prompt";
+  try { perm = await h.queryPermission({ mode: "readwrite" }); } catch (_) { /* treat as prompt */ }
+  if (state.folder) return;   // connected some other way meanwhile
+  if (perm === "granted") { await connectFolder(h); return; }
+  state.folderSaved = h;
+  updateFolderButton();
+}
+
+/** Reconnect last session's folder: a permission prompt, no folder dialog. Must
+ *  run from a click -- requestPermission is called before anything is awaited. */
+async function reconnectFolder() {
+  const h = state.folderSaved;
+  if (!h) return false;
+  let perm = "denied";
+  try { perm = await h.requestPermission({ mode: "readwrite" }); } catch (_) { /* refused */ }
+  if (perm !== "granted") { toast("Access to “" + h.name + "” wasn't allowed — Choose folder… picks it again", true); return false; }
+  await connectFolder(h);
+  return true;
+}
 
 function updateFolderButton() {
   const btn = $("#btn-folder");
   btn.hidden = !canPickDir || !state.text;
   const unlinked = !!state.text && !state.handle;
-  $("#folder-label").textContent = state.folder ? state.folder.name : "Connect folder";
+  const saved = !state.folder && state.folderSaved;
+  $("#folder-label").textContent = state.folder ? state.folder.name : saved ? "Reconnect " + saved.name : "Connect folder";
+  $("#folder-reconnect").hidden = !saved;
+  if (saved) $("#folder-reconnect").textContent = "Reconnect “" + saved.name + "”";
   btn.setAttribute("aria-pressed", String(!!state.folder));
   btn.classList.toggle("needs", unlinked);
   btn.title = unlinked
@@ -4929,6 +5004,7 @@ function updateFolderButton() {
     : " This file isn't in it — pick the folder it's in.";
   const line = $("#folder-status");
   if (state.folder) line.textContent = "Connected to “" + state.folder.name + "” — edits save straight to your files." + here;
+  else if (saved) line.textContent = "Last time you were connected to “" + saved.name + "”. Reconnect asks the browser for access again — no hunting for the folder.";
   else line.innerHTML = "Pick your project folder so <strong>“autosave”</strong> works. " +
     "Otherwise every save asks you where the file is." +
     "<span class=\"folder-hint\">Tip: pick the folder above all your projects to cover them all.</span>";
@@ -5018,6 +5094,8 @@ async function connectFolder(handle) {
   for (const url of folderAssets.values()) URL.revokeObjectURL(url);
   folderAssets.clear();
   state.folder = handle;
+  state.folderSaved = null;
+  rememberFolder(handle);
   folderIndex = null;
   for (const t of state.tabs) delete t.folderDir;
   updateFolderButton();
@@ -5100,6 +5178,7 @@ async function resolveFolderImages(t) {
 }
 
 $("#btn-folder").addEventListener("click", updateFolderButton);   // fresh status as it opens
+$("#folder-reconnect").addEventListener("click", () => { closePops(); reconnectFolder(); });
 $("#folder-pick").addEventListener("click", async () => {
   closePops();
   const opts = { id: "nl-folder", mode: "readwrite" };
@@ -5132,6 +5211,7 @@ state.tabSetName = "";   // the set last saved or opened: Save offers its name a
 
 async function saveTabSet() {
   closePops();
+  if (!state.folder && state.folderSaved && !(await reconnectFolder())) return;
   if (!state.folder) { toast("Connect your project folder first (📁) — a tab set is saved there", true); return; }
   commitInline();
   const tabs = [], outside = [];
@@ -5164,13 +5244,17 @@ async function saveTabSet() {
 
 async function openTabSet() {
   closePops();
+  const reconnecting = !state.folder && !!state.folderSaved;
+  if (reconnecting && !(await reconnectFolder())) return;
   if (!state.folder) { toast("Connect your project folder first (📁) — a tab set's files are opened from there", true); return; }
   let fh;
   try {
     [fh] = await window.showOpenFilePicker({ id: "nl-tabset", startIn: state.folder,
       types: [{ description: "Tab set", accept: { "application/json": [".json"] } }] });
   } catch (e) {
-    if (e && e.name !== "AbortError") toast("Couldn't open that file: " + (e.message || e.name), true);
+    // The permission prompt can use up the click, so the picker is refused: say so plainly.
+    if (reconnecting && e && e.name === "SecurityError") toast("Reconnected “" + state.folder.name + "” — now choose ⋮ → Open a tab set… again");
+    else if (e && e.name !== "AbortError") toast("Couldn't open that file: " + (e.message || e.name), true);
     return;
   }
   await openTabSetFile(fh);
@@ -5268,6 +5352,7 @@ $("#btn-open-tabset").addEventListener("click", async () => {
   const note = $("#ts-note"), list = $("#ts-list");
   note.textContent = "";
   list.innerHTML = "";
+  if (!state.folder && state.folderSaved && !(await reconnectFolder())) return;
   if (!state.folder) {
     let dir;
     try { dir = await window.showDirectoryPicker({ id: "nl-folder", mode: "readwrite" }); }
@@ -6125,6 +6210,7 @@ function clearCache() {
   }
   keys.forEach(key => localStorage.removeItem(key));
   persistOff = true;   // or the pagehide save writes the tabs straight back
+  try { indexedDB.deleteDatabase(NL_DB); } catch (_) { /* nothing kept */ }
 
   toast("Cache and settings cleared");
   // Reload to apply defaults
@@ -8261,6 +8347,8 @@ function initDataTableInteractivity() {
     labels.forEach(label => label.textContent = state.filterMode || 'AND');
   }
 }
+
+setTimeout(restoreFolder, 0);   // after boot: the connected folder, if it can come back
 
 (function boot() {
   // 0. Last session's tabs, rebuilt quietly. Whatever the routes below load

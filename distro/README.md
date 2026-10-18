@@ -177,8 +177,9 @@ in the project repository (it isn't part of this package); the short version:
 A file opened this way arrives without a live link to disk — the browser never tells
 a page where a file lives. Click **📁 Connect folder** and pick your project folder:
 edits you make in the viewer then save straight to the file, and **Watch** follows
-every save you make in VS Code. (Folder access lasts until the page is closed or
-refreshed.)
+every save you make in VS Code. The folder is remembered: after a refresh it comes
+back by itself, or with one click on **Reconnect** if the browser wants your
+permission again.
 
 > **The HTML file is all you need.** Mermaid is embedded in it, so copy, email or
 > move `northern-lights.html` on its own and diagrams still render. `vendor/` is only
@@ -211,9 +212,10 @@ flowchart TD
     Live -.->|"page refresh drops the link"| Plain
 ```
 
-That dotted line is the one surprise: a page refresh always discards the live link,
-because `file://` pages cannot store it. Your tabs come back as saved copies (shown in
-italics), and one **Connect folder** relinks them all. A browser restriction, not a bug.
+That dotted line is the one surprise: after a refresh the browser may want your
+permission for the folder again. Until then your tabs show as saved copies (in
+italics); one click on **Reconnect** — no folder dialog — relinks them all. Choose
+*Allow on every visit* when Edge or Chrome asks, and even that click goes away.
 
 ## What it does
 
@@ -279,7 +281,7 @@ italics), and one **Connect folder** relinks them all. A browser restriction, no
   opens a page that's broken on purpose, fresh every time, with Hurry mode off so
   you can watch each fix.
 - **Connect folder** — one pick relinks your tabs, enables saving and Watch, and loads
-  relative images.
+  relative images. Remembered across refreshes and Back / Forward.
 - **Source path** — click the filename in the toolbar for a selectable field and a
   **Copy** button. Opening via the VS Code task shows the full path; drag & drop, the
   file picker and paste can only show the filename, because browsers never reveal full
