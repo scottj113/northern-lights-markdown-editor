@@ -93,6 +93,8 @@ Complete feature inventory with status, timeline, and metadata.
 | ALL-CAPS headings | appearance | ✓ | 100% | 10/10 | 10/10 | v3.0 | | 3 | medium | Style | Aa menu or bare H: headings shown in capitals with a touch of tracking. Display only (the file keeps its casing); remembered, applied before first paint, kept in standalone export |
 | Connect folder | sync | ✓ | 100% | 10/10 | 10/10 | v3.0 | | 1 | high | Workflow | 📁 toolbar button: pick the project folder (read/write). Remembered across refreshes and Back/Forward (the handle is kept in IndexedDB): back by itself while the browser still grants access ("Allow on every visit"), else one click on Reconnect — a permission prompt, no folder dialog. Clear cache forgets it. Relinks open tabs to their files — by VS Code path, else folder + name, else a unique name; never a guess — restoring save/refresh/watch; unsaved edits kept. Documents opened later link themselves. Relative images (Markdown or raw <img>) load from the folder; exports keep the original paths |
 | Interactive Mode on every Markdown table | tables | ✓ | 100% | 7/31 | — | v3.0 | | 2 | high | Feature | Per-table toggle: click a header to sort, per-column filters (AND/OR), hide/show columns, Reset, CSV and JSON export of the current view. Markdown tables only — raw HTML tables are left as layout |
+| Pop out (diagrams and tables) | ui | ✓ | 100% | 10/18 | 10/18 | v3.0 | | 2 | medium | UX | ⧉ on a diagram's toolbar or a table's bar (either mode) moves the real element into a full-window view, so it keeps working — zoom and contrast, Interactive Mode, sorting, filters. A diagram is fitted to the view and gets its zoom back when it returns. ✕ / Esc / Put back returns it; a page redraw, print or export puts it back first |
+| Diagram zoom % and frame size % boxes | render | ✓ | 100% | 10/18 | 10/18 | v3.0 | | 3 | medium | UX | The diagram toolbar's 🔍 [ % ] box zooms to a typed size (25–800%), and its ⬚ [ % ] box sizes the frame like the corner drag does (30–400% of its fitted size, as wide as the window allows); both follow the buttons, wheel and drag, and ↺ resets them |
 | Embedded images not displayed | render | ✓ | 100% | 10/10 | 10/10 | v3.0 | | 3 | low | Decision | base64 data: images (Markdown or raw <img>, any type) show "🖼 Embedded image not shown: <alt>" instead of the image; data: in srcset/poster dropped. Source view shows the file as written |
 | Markdown fixer | edit | ✓ | 100% | 10/10 | 10/10 | v3.0 | | 2 | high | Quality | 🐞 badge appears only when a document has fixable breakage: #heading with no space, unclosed code fence, table with no blank line before it, divider row with the wrong column count, -item list markers, [text] (url). One by one with a before/after (Fix / Skip), or Fix all; Hurry mode (remembered) fixes everything unattended. Saves like any edit; Undo. Skips code, front matter, comments; off in source view |
 | Undo / redo history | edit | ✓ | 100% | 10/10 | 10/10 | v3.0 | | 1 | high | Safety | Toolbar ↶ / ↷ (Ctrl+Z / Ctrl+Y outside text boxes): one step per applied block or section edit (each time a block loses focus — the same paragraph twice is two steps), replace, or fix. Last 100 per tab (Word's default depth), in memory, with a size budget on very large files; each step saves and scrolls to the change with a brief highlight. Cleared if the file changes on disk. Typing inside an open block keeps the browser's own Ctrl+Z. Replaces the find/fixer one-shot Undo buttons |
@@ -125,10 +127,10 @@ Complete feature inventory with status, timeline, and metadata.
 
 ## Summary Stats
 
-- **Total Features:** 71, all shipped (✓)
+- **Total Features:** 73, all shipped (✓)
 - **v1.0:** 46 rows (7/24–7/31) — some since reworked in v3.0
 - **v2.0:** 6 (table enhancements + logo modes, 7/31–8/1)
-- **v3.0:** 18 so far (data layer, raw HTML, tabs, editing, find & replace, connect folder, bulk tab close, tab colors, source editing, read aloud, tab sets; to 10/17)
+- **v3.0:** 20 so far (data layer, raw HTML, tabs, editing, find & replace, connect folder, bulk tab close, tab colors, source editing, read aloud, tab sets, pop out, diagram size boxes; to 10/18)
 - **Architecture:** Single-file HTML application (~8,100 lines and ~550 KB of app, plus ~3.3 MB of embedded Mermaid: ~3.9 MB in all)
 - **Dependencies:** Mermaid (vendored, MIT licensed)
 - **Installation:** None required — bookmark the HTML file
@@ -173,6 +175,6 @@ Considered and left out: emoji shortcodes (`:tada:`; a 30–50 KB name table for
 
 ---
 
-**Last Updated:** 10/17/2026  
+**Last Updated:** 10/18/2026  
 **Maintainer:** Scott  
 **License:** See LICENSE file in distro/

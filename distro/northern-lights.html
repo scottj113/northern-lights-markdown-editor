@@ -881,7 +881,19 @@ body.zen.has-tabs:not(.zen-full) #shell { top: 34px !important; }
 }
 .md .mmd-tools button:hover { color: var(--accent); background: var(--accent-soft); }
 .md .mmd-tools button[aria-pressed="true"] { color: var(--accent); background: var(--accent-soft); }
-.md .mmd-tools .mmd-pct { min-width: 44px; font-variant-numeric: tabular-nums; }
+.md .mmd-tools .mmd-pct {
+  display: inline-flex; align-items: center; gap: 4px; padding: 0 4px; color: var(--fg-muted);
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; white-space: nowrap;
+}
+/* A long toolbar over a narrow diagram mustn't squeeze its icons or wrap its buttons. */
+.md .mmd-tools > *, .md .mmd-tools .mmd-pct svg { flex: none; }
+.md .mmd-tools button { white-space: nowrap; }
+.md .mmd-tools .mmd-pct input {
+  width: 46px; height: 22px; padding: 0 4px; box-sizing: border-box; text-align: right;
+  font: 600 12px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; font-variant-numeric: tabular-nums;
+  color: var(--fg); background: var(--bg); border: 1px solid var(--border-strong); border-radius: 5px;
+}
+.md .mmd-tools .mmd-pct input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
 .md .mmd-tools .sep { width: 1px; height: 14px; background: var(--border); margin: 0 3px; }
 body.source-view .toc-edit { display: none !important; }
 .src-lines .sl.h .lt { font-weight: 700; color: var(--accent); }
@@ -1295,6 +1307,28 @@ body.has-tabs #toast { top: 96px; }   /* clear of the tab row, same gap as witho
 .md .table-controls button:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
 .md .table-scroll { overflow-x: auto; }
 .md table { border-collapse: collapse; font-size: .94em; }
+/* Pop out: one diagram or table at a time, full window, over the page. */
+#popout { position: fixed; inset: 0; z-index: 70; display: flex; flex-direction: column; background: var(--bg); }
+#popout[hidden] { display: none; }
+#popout .po-bar {
+  display: flex; align-items: center; gap: 10px; padding: 8px 14px; flex: none;
+  background: var(--bg-raised); border-bottom: 1px solid var(--border);
+  font: 600 13px/1.3 system-ui, -apple-system, "Segoe UI", sans-serif; color: var(--fg-muted);
+}
+#popout #po-title { flex: 1; }
+#popout .po-body { flex: 1; min-height: 0; overflow: auto; padding: 18px 24px; max-width: none; }
+#popout .md-table-wrapper { margin: 0; }
+/* A diagram fills the view; the frame's own drag-to-resize means nothing here. */
+#popout .mermaid-block { height: 100%; }
+#popout .mmd-view, #popout .mmd-frame { height: 100% !important; width: auto !important; max-width: none !important; }
+#popout .mmd-frame { resize: none; }
+#popout .mmd-size { display: none; }
+#popout .mmd-tools { opacity: 1; }
+.popout-ph { border: 1px dashed var(--border-strong); border-radius: 8px; margin: 0 0 1.15em;
+  display: grid; place-items: center; color: var(--fg-faint); font-size: 12.5px; }
+/* The table bar's pop-out button sits at its far end. */
+.md-table-popout { margin-left: auto; white-space: nowrap; flex: none; }
+
 /* Markdown tables get their spacing from .md-table-wrapper; raw HTML ones need their own. */
 .md table:not([data-cols]) { margin: 0 0 1.15em; }
 .md th, .md td { border: 1px solid var(--border); padding: 7px 12px; }
@@ -1795,6 +1829,13 @@ body.has-tabs #toast { top: 96px; }   /* clear of the tab row, same gap as witho
 <input type="file" id="file-input" accept=".md,.markdown,.mdown,.mkd,.txt,text/markdown,text/plain" multiple>
 
 <!-- VS Code welcome popup -->
+<!-- Pop out: a diagram or table, full window (see "pop out"). -->
+<div id="popout" role="dialog" aria-modal="true" aria-labelledby="po-title" hidden>
+  <div class="po-bar"><span id="po-title"></span>
+    <button type="button" class="btn" id="po-close" title="Put it back in the page (Esc)">&times; Close <kbd>Esc</kbd></button></div>
+  <div class="po-body md"></div>
+</div>
+
 <div id="vscode-welcome" hidden>
   <div class="vscode-welcome-overlay"></div>
   <div class="vscode-welcome-box">
@@ -2892,6 +2933,7 @@ function updatePathPanel() {
 }
 
 function render() {
+  if (popped) popIn(true);   // the page it came from is being replaced
   if (state.reading) stopReading();   // the page it was reading is being replaced
   if (!state.text) {
     document.body.classList.add("blank");
@@ -3146,6 +3188,7 @@ function lightThemed(code) {
    Nothing here is remembered: a re-render starts fitted again (only the
    light-background toggle, which redraws one diagram, keeps a dragged size). */
 const MMD_ZOOM = [0.25, 8], MMD_CONTRAST = [0.2, 3];
+const MMD_FRAME = [30, 400];   // frame size, % of its fitted size
 
 /** The contrast filter for a diagram, measured against its frame's background
  *  rather than mid-grey (CSS contrast()), which on a light background barely
@@ -3182,6 +3225,49 @@ window.addEventListener("resize", () => {
     if (parseFloat(f.style.width) > parseFloat(f.style.maxWidth)) f.style.width = f.style.maxWidth;
   }
 });
+/* ---------------------------------------------------------------- pop out --
+   A diagram or a table, full window: the real element is moved into the view
+   (a placeholder holds its place), so it keeps working -- zoom and contrast,
+   Interactive Mode, sorting and filters -- and slides back when closed (✕ or
+   Esc). One at a time. Anything that redraws the page, prints or exports puts
+   it back first. */
+let popped = null;   // { el, ph }
+function togglePopout(el, title) {
+  if (popped && popped.el === el) { popIn(); return; }
+  popIn();
+  const ph = document.createElement("div");
+  ph.className = "popout-ph";
+  ph.style.height = el.offsetHeight + "px";
+  ph.textContent = title + " — popped out (Esc to put it back)";
+  el.replaceWith(ph);
+  $("#popout .po-body").appendChild(el);
+  popped = { el, ph };
+  popLabels(el, true);
+  $("#po-title").textContent = title + (state.name ? " · " + state.name : "");
+  $("#popout").hidden = false;
+  requestAnimationFrame(() => { if (el.popoutFit) el.popoutFit(true); });
+  $("#po-close").focus();
+}
+/** Put a popped-out element back -- or, if its page was replaced, let it go. */
+function popIn(drop) {
+  if (!popped) return;
+  const { el, ph } = popped;
+  popped = null;
+  $("#popout").hidden = true;
+  if (drop || !ph.isConnected) { el.remove(); return; }
+  ph.replaceWith(el);
+  popLabels(el, false);
+  if (el.popoutFit) el.popoutFit(false);
+}
+/** Its own pop-out button says what it does now: out, or back. */
+function popLabels(el, out) {
+  for (const b of el.querySelectorAll(".md-table-popout")) b.innerHTML = out ? "&#10697; Put back" : "&#10697; Pop out";
+  for (const b of el.querySelectorAll(".mmd-tools [data-p]")) b.title = out ? "Put it back in the page (Esc)" : "Pop out: this diagram, full window";
+}
+$("#po-close").addEventListener("click", () => popIn());
+window.addEventListener("keydown", (e) => { if (e.key === "Escape" && popped) { e.stopImmediatePropagation(); popIn(); } }, true);
+window.addEventListener("beforeprint", () => popIn());
+
 function frameDiagram(el) {
   const svg = el.querySelector("svg");
   const vb = svg && svg.viewBox && svg.viewBox.baseVal;
@@ -3192,13 +3278,25 @@ function frameDiagram(el) {
     '<div class="mmd-stage"></div></div>' +
     '<div class="mmd-tools" role="toolbar" aria-label="Diagram controls">' +
     '<button type="button" data-z="out" title="Zoom out (Ctrl+wheel)">&minus;</button>' +
-    '<button type="button" data-z="fit" class="mmd-pct" title="Fit to width (or double-click the diagram)"></button>' +
-    '<button type="button" data-z="in" title="Zoom in (Ctrl+wheel)">+</button><i class="sep"></i>' +
+    '<label class="mmd-pct" title="Zoom: type a size and press Enter">' +
+    '<svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6" ' +
+    'stroke-linecap="round" aria-hidden="true"><circle cx="6.8" cy="6.8" r="4.3"/><path d="M10 10l3.8 3.8"/></svg>' +
+    '<input type="number" inputmode="numeric" min="' + MMD_ZOOM[0] * 100 + '" max="' + MMD_ZOOM[1] * 100 +
+    '" step="10" aria-label="Zoom percent">%</label>' +
+    '<button type="button" data-z="in" title="Zoom in (Ctrl+wheel)">+</button>' +
+    '<button type="button" data-z="fit" title="Fit to width (or double-click the diagram)">Fit</button><i class="sep"></i>' +
+    '<label class="mmd-pct mmd-size" title="Frame size: type a size and press Enter (or drag the lower-right corner)">' +
+    '<svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6" ' +
+    'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="2" width="12" height="12" rx="2" ' +
+    'stroke-dasharray="2.5 2"/><path d="M8 8h4.5v4.5M12.5 12.5 8 8"/></svg>' +
+    '<input type="number" inputmode="numeric" min="' + MMD_FRAME[0] + '" max="' + MMD_FRAME[1] +
+    '" step="10" aria-label="Frame size percent">%</label><i class="sep"></i>' +
     '<button type="button" data-c="-1">&#9680;&minus;</button>' +
     '<button type="button" data-c="1">&#9680;+</button><i class="sep"></i>' +
     '<button type="button" data-l title="Light background — for diagrams hard to read on a dark page" aria-pressed="' +
     !!el.dataset.light + '">&#9788;</button><i class="sep"></i>' +
-    '<button type="button" data-r title="Reset view — fit, normal contrast, own background, original size">&#8634;</button></div></div>';
+    '<button type="button" data-r title="Reset view — fit, normal contrast, own background, original size">&#8634;</button><i class="sep"></i>' +
+    '<button type="button" data-p title="Pop out: this diagram, full window">&#10697;</button></div></div>';
   const frame = el.querySelector(".mmd-frame");
   const tools = el.querySelector(".mmd-tools");
   el.querySelector(".mmd-stage").appendChild(svg);
@@ -3235,9 +3333,63 @@ function frameDiagram(el) {
     svg.style.height = h * s + "px";
     frame.scrollLeft = px * s - cx;
     frame.scrollTop = py * s - cy;
-    tools.querySelector(".mmd-pct").textContent = Math.round(s * 100) + "%";
+    pct.value = Math.round(s * 100);
   };
+  // Zoom %: a typed size, applied on Enter or when the box is left (the
+  // spinner arrows count too). Anything out of range is clamped; a blank or
+  // non-number puts back the size it was.
+  const pct = tools.querySelector(".mmd-pct input");
+  pct.addEventListener("change", () => {
+    const v = parseFloat(pct.value);
+    if (Number.isFinite(v) && v > 0) zoom(v / 100); else pct.value = Math.round(s * 100);
+  });
+  pct.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") { e.preventDefault(); pct.blur(); }
+    else if (e.key === "Escape") { pct.value = Math.round(s * 100); pct.blur(); }
+  });
   zoom(fit);
+
+  // Popped out: fit the whole diagram to the view (larger than life if it's
+  // small); back in the page, the zoom it had before. Set per drawing, so a
+  // redrawn diagram answers for itself.
+  let zoomBefore = null;
+  el.popoutFit = (out) => {
+    if (out) { zoomBefore = s; zoom(Math.min((frame.clientWidth - PAD) / w, (frame.clientHeight - PAD) / h)); }
+    else if (zoomBefore !== null) { zoom(zoomBefore); zoomBefore = null; }
+  };
+
+  // Frame size %: what dragging the lower-right corner does, typed. 100% is the
+  // frame as first fitted -- the column's width, the diagram's fitted height;
+  // both scale together. Wider is capped where the window ends (as dragging
+  // is); the size is kept the same way the drag's is, and ↺ undoes it. The
+  // box shows the height's share, which nothing caps, and follows the drag.
+  const sizeBox = tools.querySelector(".mmd-size input");
+  const baseH = () => parseFloat(frame.dataset.fit);
+  const showSize = () => {
+    if (document.activeElement !== sizeBox) sizeBox.value = Math.round(parseFloat(frame.style.height || frame.dataset.fit) / baseH() * 100);
+  };
+  const resize = (p) => {
+    p = Math.min(MMD_FRAME[1], Math.max(MMD_FRAME[0], p)) / 100;
+    const col = el.clientWidth, room = mmdRoom(frame);
+    const want = Math.max(120, col * p), width = Math.min(room, want);
+    // No room to grow, or about the column's own width: leave it following the window.
+    const natural = (p >= 1 && room <= col + 4) || Math.abs(width - col) <= 4;
+    frame.style.maxWidth = natural ? "" : room + "px";
+    frame.style.width = natural ? "" : width + "px";
+    frame.style.height = Math.max(60, baseH() * p) + "px";
+    showSize();
+    if (want > room + 1) toast("As wide as the window allows — the height grew to " + Math.round(p * 100) + "%");
+  };
+  sizeBox.addEventListener("change", () => {
+    const v = parseFloat(sizeBox.value);
+    if (Number.isFinite(v) && v > 0) resize(v); else showSize();
+  });
+  sizeBox.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") { e.preventDefault(); sizeBox.blur(); }
+    else if (e.key === "Escape") { sizeBox.blur(); showSize(); }
+  });
+  new ResizeObserver(showSize).observe(frame);   // dragged by the corner: the box follows
+  showSize();
 
   const contrast = (c) => {
     c = Math.round(Math.min(MMD_CONTRAST[1], Math.max(MMD_CONTRAST[0], c)) * 10) / 10;
@@ -3253,7 +3405,8 @@ function frameDiagram(el) {
     e.stopPropagation();   // not a click on the block, as far as edit mode goes
     const b = e.target.closest("button");
     if (!b) return;
-    if (b.dataset.z) zoom(b.dataset.z === "fit" ? fitNow() : s * (b.dataset.z === "in" ? 1.25 : 0.8));
+    if ("p" in b.dataset) togglePopout(el, "Diagram");
+    else if (b.dataset.z) zoom(b.dataset.z === "fit" ? fitNow() : s * (b.dataset.z === "in" ? 1.25 : 0.8));
     else if (b.dataset.c) contrast(Number(el.dataset.contrast) + 0.2 * Number(b.dataset.c));
     else if ("l" in b.dataset) {
       if (el.dataset.light) delete el.dataset.light; else el.dataset.light = "1";
@@ -6220,6 +6373,7 @@ function clearCache() {
 /* ---------- export ---------- */
 
 function exportHtml() {
+  popIn();   // the export copies the page: put a popped-out item back first
   const docCss = $("#doc-css").textContent;
   const vars = getComputedStyle(document.documentElement);
   const names = ["bg", "bg-sunk", "bg-raised", "fg", "fg-muted", "fg-faint", "border", "border-strong",
@@ -7410,8 +7564,9 @@ function convertMarkdownTablesToDataTables() {
     wrapper.appendChild(v3Table);
 
     // Wire up menu toggle
-    const toggleBtn = wrapper.querySelector('.md-table-toggle');
+    const toggleBtn = wrapper.querySelector('.md-table-toggle:not(.md-table-popout)');
     toggleBtn.addEventListener('click', () => toggleTableView(datasetId, wrapper));
+    wrapper.querySelector('.md-table-popout').addEventListener('click', () => togglePopout(wrapper, "Table"));
   });
 }
 
@@ -7495,6 +7650,7 @@ function createTableMenuBar(datasetId) {
       <div class="md-table-controls" style="display: none;">
         <div class="md-table-filters"></div>
       </div>
+      <button class="md-table-toggle md-table-popout" type="button" title="Pop out: this table, full window">&#10697; Pop out</button>
     </div>
   `;
 }
@@ -7503,7 +7659,7 @@ function createTableMenuBar(datasetId) {
 function toggleTableView(datasetId, wrapper) {
   const mdTable = wrapper.querySelector(`.md-table-source[data-table-id="${datasetId}"]`);
   const v3Table = wrapper.querySelector(`.md-table-interactive[data-table-id="${datasetId}"]`);
-  const toggleBtn = wrapper.querySelector('.md-table-toggle');
+  const toggleBtn = wrapper.querySelector('.md-table-toggle:not(.md-table-popout)');
   const controls = wrapper.querySelector('.md-table-controls');
   const toggleIcon = toggleBtn.querySelector('.toggle-icon');
   const v2Controls = wrapper.querySelector('.table-controls');
